@@ -40,9 +40,9 @@
 
 测试、脚本与自动流程不得调用真实销毁。插件的 `delete` 本身就是物理删除时，`destroy` 可复用 `delete`，两者效果相同。
 
-## 版本检查
+## 版本检查与更新
 
-只发 GET 请求，不携带账号、会话内容或设备标识。User-Agent 为 `AgentSessionManager/<version>`，单次超时 8 秒。
+只发 GET 请求，不携带账号、会话内容或设备标识。User-Agent 为 `AgentSessionManager/<version>`。渠道版本检查单次总预算 8 秒；更新清单获取与文件下载不设总时长预算，单次读停滞 30 秒才中断。网络请求自动跟随系统代理。
 
 检查结果缓存本机 `updates.json`，不含日志。检查日志只在内存实时更新。不发送遥测。
 

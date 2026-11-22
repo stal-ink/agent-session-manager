@@ -5,6 +5,7 @@ use std::cmp::Ordering;
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use anyhow::{anyhow, bail, Context, Result};
 use ring::signature::{UnparsedPublicKey, ED25519};
@@ -28,6 +29,23 @@ pub const PUBLIC_KEY_HEX: &str = match option_env!("ASM_UPDATE_PUBKEY") {
 };
 /// 单个更新文件大小上限。
 pub const MAX_DOWNLOAD_SIZE: u64 = 256 * 1024 * 1024;
+/// 更新系统网络请求（清单获取与文件下载）共用的读停滞超时：
+/// 单次传输读超过该时长没有任何数据才中断；不设总时长预算，
+/// 否则慢速链路（如数十 MB 的 exe 在百 KB/s 级吞吐下）必然被总预算掐断。
+pub const DOWNLOAD_STALL_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// 下载内容与清单 SHA-256 不符；常见原因是清单相对服务器产物过期（发布端重传过）。
+/// 调用方可据此判定「刷新清单后重试」是否有意义。
+#[derive(Debug)]
+pub struct HashMismatch;
+
+impl std::fmt::Display for HashMismatch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("更新文件 SHA-256 不匹配")
+    }
+}
+
+impl std::error::Error for HashMismatch {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AppManifest {
@@ -316,7 +334,7 @@ pub fn download_to(
         drop(file);
         let actual = format!("{:x}", hasher.finalize());
         if !actual.eq_ignore_ascii_case(expected_sha256) {
-            bail!("更新文件 SHA-256 不匹配");
+            bail!(HashMismatch);
         }
         // 清单未声明 size（0）时跳过严格长度校验，SHA-256 仍是最终判据。
         if expected_size > 0 && downloaded != expected_size {
@@ -339,9 +357,13 @@ pub fn file_name_from_url(url: &str) -> String {
     url.rsplit('/').next().unwrap_or("update.bin").to_string()
 }
 
+/// 更新系统的 HTTP agent：清单获取与文件下载共用。
+/// 不设总时长预算，只限连接建立、按单次读做停滞检测——
+/// 只要数据持续到达就一直拉，链路卡死才报错。
 pub fn http_agent() -> ureq::Agent {
     ureq::Agent::config_builder()
-        .timeout_global(Some(crate::updates::TIMEOUT))
+        .timeout_connect(Some(crate::updates::TIMEOUT))
+        .timeout_per_read(Some(DOWNLOAD_STALL_TIMEOUT))
         .user_agent(crate::updates::USER_AGENT)
         .build()
         .new_agent()
@@ -360,6 +382,30 @@ fn validate_transfer_url(label: &str, url: &str) -> Result<()> {
         return Ok(());
     }
     bail!("{label}必须是 HTTPS 或回环 HTTP")
+}
+
+/// 测试专用工具：回环假服务，不联网。
+#[cfg(test)]
+pub(crate) mod test_util {
+    use std::io::{Read, Write};
+
+    /// 本地一次性 HTTP 服务，返回请求地址与响应线程句柄。
+    pub(crate) fn serve_once(body: Vec<u8>) -> (String, std::thread::JoinHandle<()>) {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let handle = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = [0u8; 1024];
+            let _ = stream.read(&mut request);
+            let header = format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            );
+            stream.write_all(header.as_bytes()).unwrap();
+            stream.write_all(&body).unwrap();
+        });
+        (format!("http://127.0.0.1:{port}/update.bin"), handle)
+    }
 }
 
 fn is_loopback(url: &str) -> bool {
@@ -527,23 +573,7 @@ mod tests {
         dir
     }
 
-    /// 本地一次性 HTTP 服务，用于验证下载校验；不联网。
-    fn serve_once(body: Vec<u8>) -> (String, std::thread::JoinHandle<()>) {
-        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-        let port = listener.local_addr().unwrap().port();
-        let handle = std::thread::spawn(move || {
-            let (mut stream, _) = listener.accept().unwrap();
-            let mut request = [0u8; 1024];
-            let _ = stream.read(&mut request);
-            let header = format!(
-                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                body.len()
-            );
-            stream.write_all(header.as_bytes()).unwrap();
-            stream.write_all(&body).unwrap();
-        });
-        (format!("http://127.0.0.1:{port}/update.bin"), handle)
-    }
+    use super::test_util::serve_once;
 
     #[test]
     fn download_rejects_hash_mismatch_and_removes_partial_file() {
@@ -563,8 +593,10 @@ mod tests {
 
         let (url, server) = serve_once(body.clone());
         let bad = dir.join("bad.exe");
-        assert!(download_to(&url, &bad, &"0".repeat(64), body.len() as u64, |_| {}).is_err());
+        let error =
+            download_to(&url, &bad, &"0".repeat(64), body.len() as u64, |_| {}).unwrap_err();
         server.join().unwrap();
+        assert!(error.is::<HashMismatch>());
         assert!(!bad.exists());
         assert!(!dir.join("bad.exe.part").exists());
         let _ = fs::remove_dir_all(dir);

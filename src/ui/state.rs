@@ -438,6 +438,20 @@ fn channel_updates(update: Option<&ChannelUpdate>) -> (String, bool, bool, Strin
     (latest, latest_known, failed, error)
 }
 
+/// 下载速度按实际量级选单位：B/s、KB/s、MB/s，小值不进位到 MB。
+pub fn format_speed(speed_bps: u64) -> String {
+    const KIB: f64 = 1024.0;
+    const MIB: f64 = 1024.0 * 1024.0;
+    let speed = speed_bps as f64;
+    if speed < KIB {
+        format!("{} B/s", speed_bps)
+    } else if speed < MIB {
+        format!("{:.1} KB/s", speed / KIB)
+    } else {
+        format!("{:.1} MB/s", speed / MIB)
+    }
+}
+
 /// 侧栏版本号旁的更新按钮状态：0 隐藏 / 2 可更新 / 4 下载中 / 5 已下载。
 /// 只有明确发现新版本（或正在下载、已下载）时才显示；检查中、失败、无更新都不显示。
 pub fn app_update_sidebar(state: &State) -> (i32, String) {
@@ -450,9 +464,9 @@ pub fn app_update_sidebar(state: &State) -> (i32, String) {
         return (
             4,
             format!(
-                "正在下载更新 {:.0}% · {:.1} MB/s",
+                "正在下载更新 {:.0}% · {}",
                 progress * 100.0,
-                speed as f64 / 1_000_000.0
+                format_speed(speed)
             ),
         );
     }
@@ -1539,10 +1553,21 @@ mod tests {
         let (kind, tip) = app_update_sidebar(&state);
         assert_eq!(kind, 4);
         assert!(tip.contains("50%"));
-        assert!(tip.contains("1.5 MB/s"));
+        assert!(tip.contains("1.4 MB/s"));
         state.app_download = None;
 
         state.app_downloaded = Some(std::path::PathBuf::from(r"C:\tmp\app.exe"));
         assert_eq!(app_update_sidebar(&state).0, 5);
+    }
+
+    #[test]
+    fn speed_display_uses_unit_matching_magnitude() {
+        assert_eq!(format_speed(0), "0 B/s");
+        assert_eq!(format_speed(5), "5 B/s");
+        assert_eq!(format_speed(1023), "1023 B/s");
+        assert_eq!(format_speed(1024), "1.0 KB/s");
+        assert_eq!(format_speed(40_592), "39.6 KB/s");
+        assert_eq!(format_speed(1024 * 1024), "1.0 MB/s");
+        assert_eq!(format_speed(1_500_000), "1.4 MB/s");
     }
 }

@@ -11,8 +11,9 @@ use agent_session_manager::paths;
 
 use super::assets::Icons;
 use super::state::{
-    installed_groups, open_defaults, product_visible, selection_summary, session_matches,
-    sort_by_workspace, uninstalled_entries, visible_keys, workspace_suggestions_from, State,
+    format_speed, installed_groups, open_defaults, product_visible, selection_summary,
+    session_matches, sort_by_workspace, uninstalled_entries, visible_keys,
+    workspace_suggestions_from, State,
 };
 use super::theme;
 use super::{
@@ -223,7 +224,7 @@ fn plugin_download_rows(state: &State) -> Vec<PluginDownloadRow> {
         let detail = if *speed == 0 {
             "正在下载…".to_string()
         } else {
-            format!("{:.1} MB/s", *speed as f64 / 1_000_000.0)
+            format_speed(*speed)
         };
         rows.push(PluginDownloadRow {
             label: title_of(id).into(),
@@ -587,7 +588,7 @@ fn app_update_speed(state: &State) -> String {
     let Some((_, _, speed)) = state.app_download else {
         return String::new();
     };
-    format!("{:.1} MB/s", speed as f64 / 1_000_000.0)
+    format_speed(speed)
 }
 
 fn app_update_last_check(state: &State) -> String {

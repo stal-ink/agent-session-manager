@@ -814,7 +814,9 @@ export component SettingsPage inherits Rectangle {
                                     height: 4px;
                                     border-radius: 2px;
                                     background: Theme.surface2;
+                                    // 不写 x 时 Slint 会把宽度不满父元素的子元素自动居中，进度条必须从左端起涨。
                                     Rectangle {
+                                        x: 0;
                                         width: parent.width * root.app-update-progress;
                                         height: parent.height;
                                         border-radius: 2px;

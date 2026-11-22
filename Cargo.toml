@@ -18,7 +18,7 @@ resolver = "2"
 
 [package]
 name = "agent-session-manager"
-version = "0.18.0"
+version = "0.18.1"
 edition = "2021"
 description = "Session manager for transferring conversations between AI agents"
 license = "MIT"
@@ -50,7 +50,7 @@ slint = { version = "1.19.0", features = ["unstable-winit-030"] }
 toml = "1.2.1"
 uuid = { version = "1.29.2", features = ["v4"] }
 # 版本检查专用：同步 HTTP 客户端，rustls 免系统依赖，只在后台检查线程使用。
-ureq = "3"
+ureq = { version = "3", features = ["win-system-proxy"] }
 # DeepSeek Harness 会话日志为多帧拼接的 zstd JSONL。
 zstd = "0.13"
 

@@ -104,6 +104,8 @@ export component InfoPopover inherits Rectangle {
                             border-radius: 1.5px;
                             background: Theme.border;
                             Rectangle {
+                                // 不写 x 时 Slint 会把宽度不满父元素的子元素自动居中，进度条必须从左端起涨。
+                                x: 0;
                                 width: parent.width * Math.max(0.0, Math.min(1.0, row.progress));
                                 height: parent.height;
                                 border-radius: 1.5px;

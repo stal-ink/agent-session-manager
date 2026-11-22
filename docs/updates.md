@@ -120,8 +120,9 @@ src/update/
 src/ui/tasks.rs  检查与下载后台任务；src/ui/mod.rs 持有 5 秒启动与 20 分钟定时器
 ```
 
-- HTTP 使用 `ureq`，单次超时 8 秒；哈希使用 `sha2`；Ed25519 验签使用 `ring`（仅验证）。
+- HTTP 使用 `ureq`：渠道版本检查是总预算 8 秒的小请求；更新系统的清单获取与文件下载不设总时长预算，连接建立限时 8 秒、单次读停滞 30 秒才中断。网络请求自动跟随代理：环境变量（`ALL_PROXY`/`HTTPS_PROXY`/`HTTP_PROXY`）与 Windows 系统代理（注册表），关闭系统代理时直连。哈希使用 `sha2`；Ed25519 验签使用 `ring`（仅验证）。
 - 下载写 `.part`，边下边算 SHA-256，完成后改名；失败删除 `.part`。
+- 插件 zip 哈希与所用索引不符时自动刷新在线索引重试一次：缓存索引可能落后于服务器上重传过的产物。刷新后哈希与缓存一致（服务器产物与索引矛盾）或刷新失败（网络不可达）时按原始失配上报。
 - 更新地址不写在 `config.json`：宿主用 `REPO_ROOT` 派生清单地址，本地测试用 `ASM_REPO_ROOT` 覆盖。
 - 下载文件放在 `%LOCALAPPDATA%/agent-session-manager/updates/`，不写 agent 存储。
 - 插件索引成功获取后缓存到 `plugins-index-cache.json`；`updates.json` 只保存 Agent 产品版本检查结果。

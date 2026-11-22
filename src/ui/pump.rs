@@ -584,10 +584,10 @@ pub(super) fn start(ctx: &Context) -> slint::Timer {
                                     true,
                                 );
                             } else {
-                                // 失败的是整个插件索引，不是单个插件。
+                                // 失败的是整个插件索引，不是单个插件；日志带上真实错误便于定位。
                                 agent_session_manager::updates::push_log(
                                     &mut st.plugin_log,
-                                    "插件索引获取失败",
+                                    format!("插件索引获取失败：{error}"),
                                     false,
                                 );
                                 st.plugin_check_error = error;
