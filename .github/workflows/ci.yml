@@ -11,6 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # config.toml 的 include 要求该文件存在；CI 用占位 remap（未命中的映射无副作用）
+      - name: 准备构建配置
+        run: Copy-Item .cargo/config.local.example.toml .cargo/config.local.toml
+
       # Skia 预编译库不入库，CI 上由 fetch-skia.ps1 从上游 Release 下载校验
       - name: 准备 Skia 预编译库
         run: powershell -NoProfile -ExecutionPolicy Bypass -File ./fetch-skia.ps1
