@@ -1,0 +1,89 @@
+import { Theme } from "../theme.slint";
+import { ActionButton } from "../components/action-button.slint";
+import { CheckBox } from "../components/check-box.slint";
+
+/// 销毁确认框：勾选"我已知晓不可恢复"后"销毁"才可点击，不输入文字。
+export component DestroyDialog inherits Rectangle {
+    in property <length> overlay-width: 1080px;
+    in property <length> overlay-height: 720px;
+    in property <string> summary;
+    in property <string> note;
+    callback destroy-confirmed;
+    callback close;
+
+    width: root.overlay-width;
+    height: root.overlay-height;
+    background: Theme.overlay;
+    TouchArea {
+        clicked => { root.close(); }
+    }
+    card := Rectangle {
+        width: 440px;
+        height: 300px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: 14px;
+        background: Theme.dialog-bg;
+        border-width: 1px;
+        border-color: Theme.dialog-border;
+        drop-shadow-blur: 32px;
+        drop-shadow-color: Theme.dialog-shadow;
+        drop-shadow-offset-y: 10px;
+        TouchArea { }
+        property <bool> acknowledged: false;
+        VerticalLayout {
+            padding: 22px;
+            spacing: 12px;
+            Text {
+                text: "确认销毁";
+                font-size: 15px;
+                font-weight: 700;
+                color: Theme.danger;
+            }
+            Text {
+                text: root.summary;
+                font-size: 12px;
+                color: Theme.text;
+                wrap: word-wrap;
+            }
+            Text {
+                text: root.note;
+                font-size: 11px;
+                color: Theme.text3;
+                wrap: word-wrap;
+            }
+            Rectangle { vertical-stretch: 1; }
+            HorizontalLayout {
+                spacing: 9px;
+                alignment: start;
+                VerticalLayout {
+                    alignment: center;
+                    CheckBox {
+                        checked: card.acknowledged;
+                        toggled(value) => { card.acknowledged = value; }
+                    }
+                }
+                Text {
+                    text: "我已知晓不可恢复";
+                    font-size: 12px;
+                    color: Theme.text;
+                    vertical-alignment: center;
+                }
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: end;
+                ActionButton {
+                    text: "取消";
+                    clicked => { root.close(); }
+                }
+                ActionButton {
+                    text: "销毁";
+                    danger: true;
+                    enabled: card.acknowledged;
+                    clicked => { root.destroy-confirmed(); }
+                }
+            }
+        }
+    }
+}

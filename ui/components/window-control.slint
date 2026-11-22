@@ -1,0 +1,58 @@
+import { Theme } from "../theme.slint";
+
+export component WindowControl inherits Rectangle {
+    in property <int> kind: 0;
+    in property <bool> maximized: false;
+    callback clicked;
+    width: 38px;
+    height: 28px;
+    border-radius: 6px;
+    background: touch.has-hover ? Theme.surface2 : transparent;
+    private property <color> glyph-color:
+        root.kind == 2 && touch.has-hover
+        ? Theme.danger
+        : touch.has-hover ? Theme.text : Theme.text2;
+
+    if root.kind == 0: Path {
+        width: 10px;
+        height: 10px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        stroke: glyph-color;
+        stroke-width: 1.1px;
+        commands: "M 1 5 L 9 5";
+    }
+    if root.kind == 1 && !root.maximized: Path {
+        width: 10px;
+        height: 10px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        fill: transparent;
+        stroke: glyph-color;
+        stroke-width: 1.1px;
+        commands: "M 1 1 L 9 1 L 9 8 L 1 8 Z";
+    }
+    if root.kind == 1 && root.maximized: Path {
+        width: 10px;
+        height: 10px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        fill: transparent;
+        stroke: glyph-color;
+        stroke-width: 1.1px;
+        commands: "M 1 3 L 7 3 L 7 9 L 1 9 Z M 3 1 L 9 1 L 9 7";
+    }
+    if root.kind == 2: Path {
+        width: 10px;
+        height: 10px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        stroke: glyph-color;
+        stroke-width: 1.1px;
+        commands: "M 1 1 L 9 9 M 9 1 L 1 9";
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}

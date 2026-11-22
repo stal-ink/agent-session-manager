@@ -1,0 +1,92 @@
+schema = 2
+id = "claude"
+label = "Claude Code"
+version = "@VERSION@"
+protocol = 1
+ir_version = 1
+min_host = "0.17.0"
+process = "claude.exe"
+launch = "claude"
+icon = "icon.png"
+can_write = true
+sha256 = "@SHA256@"
+group_color = "#d97757"
+
+[execution]
+mode = "ephemeral"
+command = "bin/agent-plugin-claude.exe"
+args = []
+timeout_ms = 30000
+
+[capabilities]
+list = true
+load = true
+write = true
+delete = true
+destroy = true
+active = true
+backup_paths = true
+
+[safety]
+requires_exclusive = true
+restore_on_error = true
+delete_is_physical = false
+
+[integration]
+tracks_process = true
+close_process = ""
+close_mode = "process"
+open_session_ids = false
+archive_from_open_ids = false
+
+[[variants]]
+id = "claude-vscode"
+label = "Claude Code for VS Code"
+kind = "vsix"
+default_open = true
+[variants.open]
+strategy = "vscode_workspace"
+command = ""
+args = []
+session_args = []
+[variants.update]
+channel = "claude-vscode"
+version_url = "https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code"
+parser = "regex"
+patterns = [
+    '"Versions":\s*\[\s*\{[^}]*?"version"\s*:\s*"([^"]+)"',
+    '"Version"\s*:\s*"([^"]+)"',
+]
+download_url = "https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code"
+[[variants.detectors]]
+type = "vscode_extension"
+roots = [".vscode", ".vscode-cn"]
+prefix = "anthropic.claude-code-"
+
+[[variants]]
+id = "claude-cli"
+label = "Claude Code CLI"
+kind = "cli"
+default_open = false
+[variants.open]
+strategy = "command"
+command = "claude"
+args = []
+session_args = ["--resume", "{session_id}"]
+[variants.update]
+channel = "claude-cli"
+version_url = "https://registry.npmjs.org/@anthropic-ai/claude-code/latest"
+parser = "json"
+paths = ["version"]
+download_url = "https://www.npmjs.com/package/@anthropic-ai/claude-code"
+[[variants.detectors]]
+type = "npm_package"
+root = "%APPDATA%/npm/node_modules"
+package = "@anthropic-ai/claude-code"
+[[variants.detectors]]
+type = "native_binary"
+path = "~/.local/bin/claude.exe"
+[[variants.detectors]]
+type = "command_version"
+command = "claude"
+args = ["--version"]

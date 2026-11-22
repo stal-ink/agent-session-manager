@@ -1,0 +1,68 @@
+schema = 2
+id = "kimi"
+label = "Kimi Code"
+version = "@VERSION@"
+protocol = 1
+ir_version = 1
+min_host = "0.17.0"
+process = "kimi.exe"
+launch = "kimi"
+icon = "icon.png"
+can_write = true
+sha256 = "@SHA256@"
+group_color = "#1783FF"
+
+[execution]
+mode = "ephemeral"
+command = "bin/agent-plugin-kimi.exe"
+args = []
+timeout_ms = 30000
+
+[capabilities]
+list = true
+load = true
+write = true
+delete = true
+destroy = true
+active = true
+backup_paths = true
+
+[safety]
+requires_exclusive = true
+restore_on_error = true
+delete_is_physical = false
+
+[integration]
+tracks_process = true
+close_process = ""
+close_mode = "check_only"
+open_session_ids = false
+archive_from_open_ids = false
+
+[[variants]]
+id = "kimi-cli"
+label = "Kimi Code CLI"
+kind = "cli"
+default_open = true
+[variants.open]
+strategy = "command"
+command = "kimi"
+args = []
+session_args = ["-r", "{session_id}"]
+[variants.update]
+channel = "kimi-cli"
+version_url = "https://cdn.kimi.com/kimi-code/latest.json"
+parser = "json"
+paths = ["version"]
+download_url = "https://www.kimi.com/code"
+[[variants.detectors]]
+type = "npm_package"
+root = "%APPDATA%/npm/node_modules"
+package = "@moonshot-ai/kimi-code"
+[[variants.detectors]]
+type = "native_binary"
+path = "~/.kimi-code/bin/kimi.exe"
+[[variants.detectors]]
+type = "command_version"
+command = "kimi"
+args = ["--version"]

@@ -1,0 +1,36 @@
+import { Theme } from "../theme.slint";
+
+export component IconButton inherits Rectangle {
+    in property <string> glyph;
+    in property <image> icon;
+    in property <bool> has-icon: false;
+    in property <length> icon-size: 30px;
+    in property <length> glyph-size: 15px;
+    callback clicked;
+    width: root.icon-size;
+    height: root.icon-size;
+    border-radius: 8px;
+    background: touch.has-hover ? Theme.surface2 : transparent;
+    border-width: 1px;
+    border-color: touch.has-hover ? Theme.border : transparent;
+    // 绝对定位居中：HorizontalLayout 对固定高度子元素不垂直居中，图标会顶到上沿。
+    if root.has-icon : Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: root.icon;
+        width: root.glyph-size;
+        height: root.glyph-size;
+        image-fit: contain;
+        colorize: touch.has-hover ? Theme.text : Theme.text2;
+    }
+    if !root.has-icon : Text {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        text: root.glyph;
+        font-size: root.glyph-size;
+        color: touch.has-hover ? Theme.text : Theme.text2;
+    }
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}

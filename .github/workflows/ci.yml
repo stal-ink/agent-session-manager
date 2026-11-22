@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: fmt + check-docs + 全量测试
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Skia 预编译库不入库，CI 上由 fetch-skia.ps1 从上游 Release 下载校验
+      - name: 准备 Skia 预编译库
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File ./fetch-skia.ps1
+
+      - name: 格式检查
+        run: cargo fmt --check
+
+      - name: agent-core 文档检查
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked -p agent-core --no-deps
+
+      - name: 全量测试
+        run: cargo test --locked --workspace

@@ -1,0 +1,62 @@
+schema = 2
+id = "cursor"
+label = "Cursor"
+version = "@VERSION@"
+protocol = 1
+ir_version = 1
+min_host = "0.17.0"
+process = "Cursor.exe"
+launch = "cursor"
+icon = "icon.png"
+can_write = true
+sha256 = "@SHA256@"
+group_color = "#cfd9ff"
+
+[execution]
+mode = "ephemeral"
+command = "bin/agent-plugin-cursor.exe"
+args = []
+timeout_ms = 30000
+
+[capabilities]
+list = true
+load = true
+write = true
+delete = true
+destroy = true
+active = true
+backup_paths = true
+
+[safety]
+requires_exclusive = true
+restore_on_error = true
+delete_is_physical = true
+
+[integration]
+tracks_process = true
+close_process = ""
+close_mode = "process"
+open_session_ids = false
+archive_from_open_ids = false
+
+[[variants]]
+id = "cursor-desktop"
+label = "Cursor"
+kind = "desktop"
+default_open = true
+[variants.open]
+strategy = "registry"
+command = "cursor"
+args = []
+session_args = []
+[variants.update]
+channel = "cursor-desktop"
+version_url = "https://www.cursor.com/api/download?platform=win32-x64-user&releaseTrack=stable"
+parser = "json"
+paths = ["version"]
+download_url = "https://www.cursor.com/downloads"
+[[variants.detectors]]
+type = "desktop_app"
+registry_keys = ["Cursor"]
+exe = "Cursor.exe"
+state_db = "%APPDATA%/Cursor/User/globalStorage/state.vscdb"

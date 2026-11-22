@@ -1,0 +1,31 @@
+import { Theme } from "../theme.slint";
+
+export component CheckBox inherits Rectangle {
+    in property <bool> checked: false;
+    callback toggled(bool);
+
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: root.checked ? Theme.accent : Theme.input-bg;
+    border-width: 1px;
+    border-color: root.checked ? Theme.accent : Theme.border-strong;
+
+    Path {
+        x: 2px;
+        y: 2px;
+        width: 12px;
+        height: 12px;
+        visible: root.checked;
+        commands: "M 1 6 L 4.5 9.5 L 11 3";
+        stroke: Theme.on-accent;
+        stroke-width: 1.8px;
+        fill: transparent;
+        stroke-line-cap: round;
+        stroke-line-join: round;
+    }
+
+    TouchArea {
+        clicked => { root.toggled(!root.checked); }
+    }
+}

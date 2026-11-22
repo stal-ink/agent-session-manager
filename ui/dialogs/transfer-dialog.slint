@@ -1,0 +1,205 @@
+import { Theme } from "../theme.slint";
+import { SessionRow, AgentChoice } from "../types.slint";
+import { ActionButton } from "../components/action-button.slint";
+import { IconTile } from "../components/icon-tile.slint";
+
+export component TransferDialog inherits Rectangle {
+    in property <length> overlay-width: 1080px;
+    in property <length> overlay-height: 720px;
+    in property <SessionRow> source;
+    in-out property <string> cwd;
+    in-out property <bool> native: true;
+    in-out property <[AgentChoice]> targets;
+    in-out property <string> target;
+    callback confirm;
+    callback cancel;
+    width: root.overlay-width;
+    height: root.overlay-height;
+    background: Theme.overlay;
+    TouchArea {
+        clicked => { root.cancel(); }
+    }
+    Rectangle {
+        width: 480px;
+        height: 470px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: 14px;
+        background: Theme.dialog-bg;
+        border-width: 1px;
+        border-color: Theme.dialog-border;
+        drop-shadow-blur: 32px;
+        drop-shadow-color: Theme.dialog-shadow;
+        drop-shadow-offset-y: 10px;
+        TouchArea { }
+        VerticalLayout {
+            padding: 22px;
+            spacing: 13px;
+            Text {
+                text: "转接会话";
+                font-size: 15px;
+                font-weight: 700;
+                color: Theme.text;
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                IconTile {
+                    source: root.source.icon;
+                    width: 22px;
+                    height: 22px;
+                    border-radius: 6px;
+                }
+                Text {
+                    text: root.source.title == "" ? "(无标题)" : root.source.title;
+                    font-size: 12px;
+                    color: Theme.text2;
+                    vertical-alignment: center;
+                    overflow: elide;
+                    horizontal-stretch: 1;
+                }
+                Text {
+                    text: root.source.agent-label;
+                    font-size: 12px;
+                    color: Theme.text3;
+                    vertical-alignment: center;
+                }
+            }
+            VerticalLayout {
+                spacing: 6px;
+                Text { text: "目标 agent"; font-size: 11.5px; color: Theme.text2; }
+                FlexboxLayout {
+                    spacing: 8px;
+                    for t in root.targets : Rectangle {
+                        height: 32px;
+                        border-radius: 8px;
+                        border-width: 1px;
+                        border-color: root.target == t.id ? Theme.accent : Theme.border;
+                        background: root.target == t.id ? Theme.accent-soft : Theme.option-bg;
+                        HorizontalLayout {
+                            padding-left: 7px;
+                            padding-right: 7px;
+                            alignment: center;
+                            Text {
+                                text: t.label;
+                                font-size: 11px;
+                                color: root.target == t.id ? Theme.accent-text : Theme.text;
+                                vertical-alignment: center;
+                            }
+                        }
+                        TouchArea { clicked => { root.target = t.id; } }
+                    }
+                    if root.targets.length == 0 : Text {
+                        text: "没有可写入的目标 agent";
+                        font-size: 11.5px;
+                        color: Theme.warn;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+            VerticalLayout {
+                spacing: 6px;
+                Text { text: "目标工作区"; font-size: 11.5px; color: Theme.text2; }
+                Rectangle {
+                    height: 32px;
+                    border-radius: 8px;
+                    border-width: 1px;
+                    border-color: Theme.border-strong;
+                    background: Theme.field-bg;
+                    clip: true;
+                    HorizontalLayout {
+                        padding-left: 10px;
+                        padding-right: 10px;
+                        TextInput {
+                            text <=> root.cwd;
+                            color: Theme.text;
+                            font-size: 12px;
+                            single-line: true;
+                            selection-background-color: Theme.accent;
+                            vertical-alignment: center;
+                            horizontal-stretch: 1;
+                            min-width: 0px;
+                        }
+                    }
+                }
+            }
+            VerticalLayout {
+                spacing: 6px;
+                Text { text: "转接模式"; font-size: 11.5px; color: Theme.text2; }
+                HorizontalLayout {
+                    spacing: 8px;
+                    Rectangle {
+                        height: 54px;
+                        horizontal-stretch: 1;
+                        border-radius: 10px;
+                        border-width: 1px;
+                        border-color: root.native ? Theme.accent : Theme.border;
+                        background: root.native ? Theme.accent-soft : Theme.option-bg;
+                        VerticalLayout {
+                            padding: 9px;
+                            spacing: 2px;
+                            Text {
+                                text: "原生注入";
+                                font-size: 12px;
+                                font-weight: 600;
+                                color: root.native ? Theme.accent-text : Theme.text;
+                            }
+                            Text {
+                                text: "写入目标存储，可直接续聊";
+                                font-size: 10px;
+                                color: Theme.text3;
+                                overflow: elide;
+                            }
+                        }
+                        TouchArea { clicked => { root.native = true; } }
+                    }
+                    Rectangle {
+                        height: 54px;
+                        horizontal-stretch: 1;
+                        border-radius: 10px;
+                        border-width: 1px;
+                        border-color: !root.native ? Theme.accent : Theme.border;
+                        background: !root.native ? Theme.accent-soft : Theme.option-bg;
+                        VerticalLayout {
+                            padding: 9px;
+                            spacing: 2px;
+                            Text {
+                                text: "交接文档";
+                                font-size: 12px;
+                                font-weight: 600;
+                                color: !root.native ? Theme.accent-text : Theme.text;
+                            }
+                            Text {
+                                text: "生成交接文档，不写目标存储";
+                                font-size: 10px;
+                                color: Theme.text3;
+                                overflow: elide;
+                            }
+                        }
+                        TouchArea { clicked => { root.native = false; } }
+                    }
+                }
+            }
+            Text {
+                text: root.native ? "原生注入需要目标应用完全关闭，写入前自动备份。" : "交接文档与批量导出的交接文档同一实现，保存到数据目录 exports/handoff/。";
+                font-size: 10.5px;
+                color: root.native ? Theme.warn : Theme.text3;
+                wrap: word-wrap;
+            }
+            Rectangle { vertical-stretch: 1; }
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: end;
+                ActionButton {
+                    text: "取消";
+                    clicked => { root.cancel(); }
+                }
+                ActionButton {
+                    text: "确认转接";
+                    primary: true;
+                    clicked => { root.confirm(); }
+                }
+            }
+        }
+    }
+}

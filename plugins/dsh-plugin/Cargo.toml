@@ -1,0 +1,17 @@
+[package]
+name = "agent-plugin-dsh"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[[bin]]
+name = "agent-plugin-dsh"
+path = "src/main.rs"
+
+[dependencies]
+agent-core = { path = "../../agent-core" }
+anyhow = "1.0.104"
+chrono = "0.4.45"
+serde_json = "1.0.154"
+uuid = { version = "1.29.2", features = ["v4"] }
+zstd = "0.13"

@@ -1,0 +1,90 @@
+import { Theme } from "../theme.slint";
+import { ListView } from "std-widgets.slint";
+
+// 主题化下拉选择：点击展开选项浮层，选中即回调并收起。
+export component Select inherits Rectangle {
+    in property <[string]> options;
+    in-out property <string> value;
+    /// 无缝样式：无边框背景，仅悬浮时给浅底，用于状态栏等密集区域。
+    in property <bool> seamless: false;
+    callback changed(string);
+
+    height: seamless ? 26px : 32px;
+    border-radius: 8px;
+    border-width: seamless ? 0px : 1px;
+    border-color: seamless ? transparent : (touch.has-hover || popup.is-open ? Theme.border-strong : Theme.border);
+    background: seamless
+        ? (touch.has-hover || popup.is-open ? Theme.surface2 : transparent)
+        : Theme.input-bg;
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 26px;
+        Text {
+            text: root.value;
+            font-size: 11.5px;
+            color: seamless ? Theme.text2 : Theme.text;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+            overflow: elide;
+        }
+    }
+    // 实心三角绝对定位，垂直居中；展开时朝上。
+    Path {
+        x: root.width - 18px;
+        y: (root.height - 8px) / 2;
+        width: 8px;
+        height: 8px;
+        fill: popup.is-open ? Theme.text2 : Theme.text3;
+        commands: popup.is-open ? "M 0.5 5.5 L 7.5 5.5 L 4 2 Z" : "M 0.5 2.5 L 7.5 2.5 L 4 6 Z";
+    }
+
+    touch := TouchArea {
+        clicked => { popup.show(); }
+    }
+
+    popup := PopupWindow {
+        x: 0px;
+        y: root.height + 4px;
+        width: root.width;
+        height: Math.min(root.options.length * 30px + 8px, 220px);
+        Rectangle {
+            width: parent.width;
+            height: parent.height;
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: Theme.dialog-border;
+            background: Theme.dialog-bg;
+            drop-shadow-blur: 18px;
+            drop-shadow-color: Theme.dialog-shadow;
+            drop-shadow-offset-y: 4px;
+            ListView {
+                x: 4px;
+                y: 4px;
+                width: parent.width - 8px;
+                height: parent.height - 8px;
+                for o in root.options: Rectangle {
+                    height: 30px;
+                    border-radius: 6px;
+                    background: opt-touch.has-hover ? Theme.surface2 : (o == root.value ? Theme.accent-soft : transparent);
+                    Text {
+                        x: 8px;
+                        width: parent.width - 16px;
+                        text: o;
+                        font-size: 11.5px;
+                        color: o == root.value ? Theme.accent-text : Theme.text;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+
+                    opt-touch := TouchArea {
+                        clicked => {
+                            root.changed(o);
+                            popup.close();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

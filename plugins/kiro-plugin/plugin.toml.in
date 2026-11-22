@@ -1,0 +1,68 @@
+schema = 2
+id = "kiro"
+label = "Kiro"
+version = "@VERSION@"
+protocol = 1
+ir_version = 1
+min_host = "0.17.0"
+process = "Kiro.exe"
+launch = "kiro"
+icon = "icon.png"
+can_write = true
+sha256 = "@SHA256@"
+group_color = "#b07cff"
+
+[execution]
+mode = "ephemeral"
+command = "bin/agent-plugin-kiro.exe"
+args = []
+timeout_ms = 30000
+
+[capabilities]
+list = true
+load = true
+write = true
+delete = true
+destroy = true
+active = true
+backup_paths = true
+
+[safety]
+requires_exclusive = true
+restore_on_error = true
+delete_is_physical = true
+
+[integration]
+tracks_process = true
+close_process = ""
+close_mode = "process"
+open_session_ids = true
+archive_from_open_ids = true
+
+[[variants]]
+id = "kiro-desktop"
+label = "Kiro"
+kind = "desktop"
+default_open = true
+
+[variants.open]
+strategy = "registry"
+command = "kiro"
+args = ["{cwd}"]
+session_args = []
+
+[variants.update]
+channel = "kiro-desktop"
+version_url = "https://kiro.dev/downloads/"
+parser = "regex"
+patterns = [
+    '/releases/stable/[^"\s<>]*?/([0-9]+(?:\.[0-9]+)+)',
+    'kiro-ide-([0-9]+(?:\.[0-9]+)+)-stable',
+]
+download_url = "https://kiro.dev/downloads/"
+
+[[variants.detectors]]
+type = "desktop_app"
+registry_keys = ["Kiro"]
+exclude_prefixes = ["kiro manager"]
+exe = "Kiro.exe"

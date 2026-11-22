@@ -1,0 +1,39 @@
+import { Theme } from "../theme.slint";
+
+export component ArchiveTag inherits Rectangle {
+    in property <bool> archived: false;
+    in property <bool> deleted: false;
+    in property <bool> workspace-deleted: false;
+    height: 19px;
+    border-radius: 9px;
+    background: deleted
+        ? Theme.tag-deleted-bg
+        : (workspace-deleted
+            ? Theme.tag-workspace-bg
+            : (archived ? Theme.tag-archived-bg : Theme.tag-active-bg));
+    border-width: 1px;
+    border-color: deleted
+        ? Theme.tag-deleted-border
+        : (workspace-deleted
+            ? Theme.tag-workspace-border
+            : (archived ? Theme.tag-archived-border : Theme.tag-active-border));
+    HorizontalLayout {
+        padding-left: 7px;
+        padding-right: 7px;
+        alignment: center;
+        Text {
+            text: root.deleted
+                ? "已删除"
+                : (root.workspace-deleted
+                    ? "工作区归档/删除"
+                    : (root.archived ? "已归档" : "活跃中"));
+            font-size: 9.5px;
+            color: root.deleted
+                ? Theme.tag-deleted-text
+                : (root.workspace-deleted
+                    ? Theme.tag-workspace-text
+                    : (root.archived ? Theme.tag-archived-text : Theme.tag-active-text));
+            vertical-alignment: center;
+        }
+    }
+}

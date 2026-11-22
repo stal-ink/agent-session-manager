@@ -1,0 +1,66 @@
+schema = 2
+id = "dsh"
+label = "DeepSeek Harness"
+version = "@VERSION@"
+protocol = 1
+ir_version = 1
+min_host = "0.17.0"
+process = "DeepSeek Harness.exe"
+launch = "deepseek-harness"
+icon = "icon.png"
+can_write = true
+sha256 = "@SHA256@"
+group_color = "#e9ebf1"
+
+[execution]
+mode = "ephemeral"
+command = "bin/agent-plugin-dsh.exe"
+args = []
+timeout_ms = 30000
+
+[capabilities]
+list = true
+load = true
+write = true
+delete = true
+destroy = true
+active = true
+backup_paths = true
+
+[safety]
+requires_exclusive = true
+restore_on_error = true
+delete_is_physical = false
+
+[integration]
+tracks_process = true
+close_process = ""
+close_mode = "process"
+open_session_ids = false
+archive_from_open_ids = false
+
+[[variants]]
+id = "dsh-desktop"
+label = "DeepSeek Harness"
+kind = "desktop"
+default_open = true
+
+[variants.open]
+strategy = "candidates"
+command = "DeepSeek Harness.exe"
+args = []
+session_args = []
+candidates = ["%APPDATA%/Microsoft/Windows/Start Menu/Programs/DeepSeek Harness.lnk", "%LOCALAPPDATA%/Programs/DeepSeek Harness/DeepSeek Harness.exe", "%LOCALAPPDATA%/DeepSeek Harness/DeepSeek Harness.exe"]
+
+[variants.update]
+channel = "dsh-desktop"
+version_url = "https://download.deepseek.com/dsh-desk/feeds/win-x64/nightly.yml"
+parser = "key"
+key = "version"
+download_url = "https://download.deepseek.com/dsh-desk/"
+
+[[variants.detectors]]
+type = "desktop_app"
+registry_keys = ["DeepSeek Harness"]
+shortcut_names = ["DeepSeek Harness"]
+exe = "DeepSeek Harness.exe"

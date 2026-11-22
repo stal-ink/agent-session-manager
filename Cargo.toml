@@ -1,0 +1,102 @@
+[workspace]
+members = [
+    "agent-core",
+    "plugins/qoder-plugin",
+    "plugins/claude-plugin",
+    "plugins/codex-plugin",
+    "plugins/cursor-plugin",
+    "plugins/dsh-plugin",
+    "plugins/kimi-plugin",
+    "plugins/kiro-plugin",
+    "plugins/workbuddy-plugin",
+    "plugins/zcode-plugin",
+    "plugins/trae-plugin",
+]
+exclude = ["third_party/skia-bindings"]
+default-members = ["."]
+resolver = "2"
+
+[package]
+name = "agent-session-manager"
+version = "0.18.0"
+edition = "2021"
+description = "Session manager for transferring conversations between AI agents"
+license = "MIT"
+
+[features]
+# 默认使用 Skia；--no-default-features 时退回 Slint 自带的 femtovg，不需要 Skia 预编译库。
+default = ["renderer-skia"]
+renderer-skia = ["slint/renderer-skia"]
+
+[dependencies]
+agent-core = { path = "agent-core", features = ["sqlite"] }
+anyhow = "1.0.104"
+chrono = "0.4.45"
+bzip2 = "0.6.1"
+flate2 = "1.1.11"
+hex = "0.4"
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp", "bmp"] }
+lzma-rs = "0.3.0"
+regex = "1.13.1"
+ring = "0.17"
+rusqlite = { version = "0.41.1", features = ["bundled"] }
+sevenz-rust = "0.6.1"
+tar = "0.4.46"
+zip = { version = "9.8.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.10"
+slint = { version = "1.19.0", features = ["unstable-winit-030"] }
+toml = "1.2.1"
+uuid = { version = "1.29.2", features = ["v4"] }
+# 版本检查专用：同步 HTTP 客户端，rustls 免系统依赖，只在后台检查线程使用。
+ureq = "3"
+# DeepSeek Harness 会话日志为多帧拼接的 zstd JSONL。
+zstd = "0.13"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_JobObjects",
+    "Win32_System_Threading",
+] }
+
+[[test]]
+name = "fake_plugin_adapter"
+path = "tests/fake_plugin_adapter.rs"
+harness = false
+
+[dev-dependencies]
+agent-plugin-claude = { path = "plugins/claude-plugin" }
+agent-plugin-codex = { path = "plugins/codex-plugin" }
+agent-plugin-cursor = { path = "plugins/cursor-plugin" }
+agent-plugin-dsh = { path = "plugins/dsh-plugin" }
+agent-plugin-kimi = { path = "plugins/kimi-plugin" }
+agent-plugin-kiro = { path = "plugins/kiro-plugin" }
+agent-plugin-qoder = { path = "plugins/qoder-plugin" }
+agent-plugin-workbuddy = { path = "plugins/workbuddy-plugin" }
+agent-plugin-zcode = { path = "plugins/zcode-plugin" }
+
+[build-dependencies]
+slint-build = "1.19.0"
+
+# 本地适配仅增加 SKIA_BINARIES_DIR：直接导入仓库内的解压版预编译库。
+[patch.crates-io]
+skia-bindings = { path = "third_party/skia-bindings" }
+
+# 不生成调试信息：PDB 是构建写入的主要来源，链接参数在 build.rs 中关闭。
+[profile.dev]
+debug = false
+
+[profile.dev.build-override]
+debug = false
+
+[profile.release.build-override]
+debug = false
+
+# 发布产物为单 exe 分发：薄 LTO + 去符号显著缩小体积。
+[profile.release]
+lto = "thin"
+strip = true
+codegen-units = 1

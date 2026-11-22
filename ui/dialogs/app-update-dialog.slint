@@ -1,0 +1,70 @@
+import { Theme } from "../theme.slint";
+import { ActionButton } from "../components/action-button.slint";
+
+/// App 自更新确认：立即退出替换，或稍后保留已下载文件。
+export component AppUpdateDialog inherits Rectangle {
+    in property <length> overlay-width: 1080px;
+    in property <length> overlay-height: 720px;
+    in property <string> version: "";
+    callback confirm;
+    callback later;
+
+    width: root.overlay-width;
+    height: root.overlay-height;
+    background: Theme.overlay;
+    TouchArea {
+        clicked => { root.later(); }
+    }
+    card := Rectangle {
+        width: 440px;
+        height: 240px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: 14px;
+        background: Theme.dialog-bg;
+        border-width: 1px;
+        border-color: Theme.dialog-border;
+        drop-shadow-blur: 32px;
+        drop-shadow-color: Theme.dialog-shadow;
+        drop-shadow-offset-y: 10px;
+        TouchArea { }
+        VerticalLayout {
+            padding: 22px;
+            spacing: 12px;
+            Text {
+                text: "更新已准备就绪";
+                font-size: 15px;
+                font-weight: 700;
+                color: Theme.text;
+            }
+            Text {
+                text: root.version == ""
+                    ? "将退出当前版本，替换为已下载的新版本并重新打开。"
+                    : "将退出当前版本，替换为 v" + root.version + " 并重新打开。";
+                font-size: 12px;
+                color: Theme.text;
+                wrap: word-wrap;
+            }
+            Text {
+                text: "选择「稍后」会保留已下载的更新，下次点击「立即更新」直接安装。";
+                font-size: 11px;
+                color: Theme.text3;
+                wrap: word-wrap;
+            }
+            Rectangle { vertical-stretch: 1; }
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: end;
+                ActionButton {
+                    text: "稍后";
+                    clicked => { root.later(); }
+                }
+                ActionButton {
+                    text: "立即更新";
+                    primary: true;
+                    clicked => { root.confirm(); }
+                }
+            }
+        }
+    }
+}

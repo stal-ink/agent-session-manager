@@ -1,0 +1,68 @@
+schema = 2
+id = "trae"
+label = "Trae CN"
+version = "@VERSION@"
+protocol = 1
+ir_version = 1
+min_host = "0.17.0"
+process = "Trae CN.exe"
+launch = "Trae CN"
+icon = "icon.png"
+can_write = false
+sha256 = "@SHA256@"
+group_color = "#32f08c"
+
+[execution]
+mode = "ephemeral"
+command = "bin/agent-plugin-trae.exe"
+args = []
+timeout_ms = 60000
+
+[capabilities]
+list = true
+load = true
+write = false
+delete = false
+destroy = false
+active = true
+backup_paths = true
+
+[safety]
+requires_exclusive = false
+restore_on_error = false
+delete_is_physical = false
+
+[integration]
+tracks_process = true
+close_process = ""
+close_mode = "check_only"
+open_session_ids = false
+archive_from_open_ids = false
+
+[[variants]]
+id = "trae-cn-desktop"
+label = "Trae CN"
+kind = "desktop"
+default_open = true
+
+[variants.open]
+strategy = "registry"
+command = "trae-cn"
+args = []
+session_args = []
+candidates = []
+
+[variants.update]
+channel = "trae-cn-desktop"
+version_url = "https://api.trae.com.cn/icube/api/v1/package/check_update?mid=00000000000000000000000000000000&did=0&userRegion=CN&packageType=stable_cn&productCode=TRAE&platform=Win&branch=release_desktop_yoma_win32_cn&arch=x64&tenant=marscode&appVersion=0.0.1&buildVersion=0.0.1&traeVersionCode=20250325&channel_name=common"
+parser = "json"
+paths = ["data.appVersion"]
+min_parts = 3
+download_url = "https://www.trae.cn/"
+
+[[variants.detectors]]
+type = "desktop_app"
+registry_keys = ["TRAE CN", "Trae CN"]
+exclude_prefixes = ["TRAE SOLO"]
+exe = "Trae CN.exe"
+shortcut_names = ["Trae CN"]

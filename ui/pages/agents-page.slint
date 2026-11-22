@@ -1,0 +1,546 @@
+import { Theme } from "../theme.slint";
+import { ListView } from "std-widgets.slint";
+import { AgentListRow, UpdateLogRow } from "../types.slint";
+import { IconTile } from "../components/icon-tile.slint";
+import { RowAction } from "../components/row-action.slint";
+import { InfoPopover } from "../components/info-popover.slint";
+
+// Agent 管理页：「已安装 / 未安装」页签切换两组列表（各自 ListView 自走滚动条），
+// 行由 kind 决定样式。已安装按产品分组（≥2 个已安装形态才显示小标题），
+// 未安装形态平铺为独立条目。
+// "检查"按钮单线程依次检查已安装与未安装；失败信息只进信息浮层的检查日志。
+// 注意：依赖 horizontal-stretch 的布局不得设置 alignment: start，否则 stretch 失效。
+
+// 1 已安装列头 / 2 分隔线 / 3 产品组头 / 4 已安装行 /
+// 6 未安装列头 / 7 未安装行 / 8 空状态。
+
+// 已安装形态行：五列 Agent / 当前版本 / 最新版本 / 状态 / 操作。
+component InstallRow inherits Rectangle {
+    in property <AgentListRow> item;
+    callback action(string);
+    callback open(string, string);
+    height: 58px;
+    card := Rectangle {
+        x: 18px;
+        y: 4px;
+        width: parent.width - 36px;
+        height: 50px;
+        border-radius: 10px;
+        border-width: 1px;
+        border-color: card-touch.has-hover ? Theme.border-accent : Theme.border;
+        background: Theme.card;
+        card-touch := TouchArea { }
+        HorizontalLayout {
+            x: 14px;
+            width: (parent.width - 28px) * 0.32;
+            height: parent.height;
+            spacing: 10px;
+            alignment: start;
+            VerticalLayout {
+                alignment: center;
+                IconTile {
+                    source: item.icon;
+                    width: 30px;
+                    height: 30px;
+                }
+            }
+            Text {
+                text: item.label;
+                font-size: 13px;
+                font-weight: 600;
+                color: Theme.text;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+        Text {
+            x: 14px + (parent.width - 28px) * 0.32;
+            y: (parent.height - self.height) / 2;
+            text: item.version == "" ? "未知" : item.version;
+            font-size: 12px;
+            color: Theme.text2;
+        }
+        Text {
+            x: 14px + (parent.width - 28px) * 0.52;
+            y: (parent.height - self.height) / 2;
+            text: item.latest-known ? item.latest : "未知";
+            font-size: 12px;
+            color: Theme.text2;
+        }
+        Text {
+            x: 14px + (parent.width - 28px) * 0.72;
+            y: (parent.height - self.height) / 2;
+            text: item.status;
+            font-size: 12px;
+            color: item.updatable ? Theme.tag-active-text : (item.latest-known ? Theme.text2 : Theme.text3);
+        }
+        // 操作列贴卡片右缘：启动在前、下载在后，两个 26px 图标按钮。
+        VerticalLayout {
+            x: parent.width - 14px - 58px;
+            width: 58px;
+            height: parent.height;
+            alignment: center;
+            HorizontalLayout {
+                width: 58px;
+                height: 26px;
+                spacing: 6px;
+                RowAction {
+                    icon: @image-url("../../assets/icons/icon-play.svg");
+                    icon-color: Theme.text2;
+                    enabled: item.open-enabled;
+                    clicked => { root.open(item.product, item.variant); }
+                }
+                RowAction {
+                    icon: @image-url("../../assets/icons/icon-download.svg");
+                    icon-color: Theme.accent-text;
+                    bordered: true;
+                    enabled: item.action-enabled;
+                    clicked => { root.action(item.channel); }
+                }
+            }
+        }
+    }
+}
+
+// 产品分组标题：全宽行，展开三角 + 产品名 + 安装数，点击展开或收起。
+component GroupHeader inherits Rectangle {
+    in property <AgentListRow> item;
+    callback toggled(string);
+    height: 30px;
+    row := Rectangle {
+        x: 18px;
+        y: 2px;
+        width: parent.width - 36px;
+        height: 26px;
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: Theme.border-accent;
+        background: header-touch.has-hover
+            ? Theme.accent-soft.mix(Theme.accent, 0.70)
+            : Theme.accent-soft.mix(Theme.accent, 0.82);
+        header-touch := TouchArea {
+            clicked => { root.toggled(item.product); }
+        }
+        HorizontalLayout {
+            x: 10px;
+            width: parent.width - 20px;
+            height: parent.height;
+            spacing: 8px;
+            VerticalLayout {
+                alignment: center;
+                Path {
+                    width: 8px;
+                    height: 8px;
+                    fill: Theme.accent-text;
+                    commands: item.expanded ? "M 0.5 2.5 L 7.5 2.5 L 4 6 Z" : "M 2.5 0.5 L 6 4 L 2.5 7.5 Z";
+                }
+            }
+            Text {
+                text: item.text;
+                font-size: 12px;
+                font-weight: 700;
+                color: Theme.text;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+                horizontal-alignment: left;
+            }
+            Text {
+                text: item.count + " 个安装";
+                font-size: 11px;
+                color: Theme.accent-text;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
+
+// 未安装条目：工具 / 最新版本 / 操作，不显示当前版本与状态。
+component UninstallRow inherits Rectangle {
+    in property <AgentListRow> item;
+    callback install(string);
+    height: 62px;
+    card := Rectangle {
+        x: 18px;
+        y: 3px;
+        width: parent.width - 36px;
+        height: 56px;
+        border-radius: 10px;
+        border-width: 1px;
+        border-color: card-touch.has-hover ? Theme.border-accent : Theme.border;
+        background: Theme.card;
+        card-touch := TouchArea { }
+        HorizontalLayout {
+            x: 14px;
+            width: (parent.width - 28px) * 0.52;
+            height: parent.height;
+            spacing: 10px;
+            alignment: start;
+            VerticalLayout {
+                alignment: center;
+                IconTile {
+                    source: item.icon;
+                    width: 30px;
+                    height: 30px;
+                }
+            }
+            Text {
+                text: item.label;
+                font-size: 13px;
+                font-weight: 600;
+                color: Theme.text;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+        Text {
+            x: 14px + (parent.width - 28px) * 0.52;
+            y: (parent.height - self.height) / 2;
+            text: item.latest-known ? item.latest : "未知";
+            font-size: 12px;
+            color: Theme.text2;
+        }
+        VerticalLayout {
+            x: parent.width - 14px - 26px;
+            width: 26px;
+            height: parent.height;
+            alignment: center;
+            RowAction {
+                icon: @image-url("../../assets/icons/icon-download.svg");
+                icon-color: Theme.accent-text;
+                bordered: true;
+                enabled: item.can-install;
+                clicked => { root.install(item.channel); }
+            }
+        }
+    }
+}
+
+// 列表本体：已安装组与未安装条目共用一套行渲染，由页签切换数据源。
+component AgentList inherits Rectangle {
+    in property <[AgentListRow]> entries;
+    callback download(string);
+    callback open(string, string);
+    callback group-toggled(string);
+
+    pure function row-height(kind: int) -> length {
+        kind == 1 ? 22px : kind == 2 ? 10px : kind == 3 ? 30px : kind == 4 ? 58px : kind == 6 ? 22px : kind == 7 ? 62px : 34px
+    }
+
+    ListView {
+        width: parent.width;
+        height: parent.height;
+        for entry in entries : Rectangle {
+            height: row-height(entry.kind);
+
+            // 已安装列头
+            if entry.kind == 1 : Rectangle {
+                x: 18px;
+                width: parent.width - 36px;
+                height: 22px;
+                property <length> inner: self.width - 28px;
+                Text { x: 14px + parent.inner * 0.00; text: "Agent"; font-size: 11px; color: Theme.text-faint; vertical-alignment: center; }
+                Text { x: 14px + parent.inner * 0.32; text: "当前版本"; font-size: 11px; color: Theme.text-faint; vertical-alignment: center; }
+                Text { x: 14px + parent.inner * 0.52; text: "最新版本"; font-size: 11px; color: Theme.text-faint; vertical-alignment: center; }
+                Text { x: 14px + parent.inner * 0.72; text: "状态"; font-size: 11px; color: Theme.text-faint; vertical-alignment: center; }
+                Text { x: parent.width - 14px - 58px; text: "操作"; font-size: 11px; color: Theme.text-faint; vertical-alignment: center; }
+            }
+
+            // 分隔线
+            if entry.kind == 2 : Rectangle {
+                x: 18px;
+                y: 4px;
+                width: parent.width - 36px;
+                height: 1px;
+                background: Theme.border;
+            }
+
+            // 未安装列头
+            if entry.kind == 6 : Rectangle {
+                x: 18px;
+                width: parent.width - 36px;
+                height: 22px;
+                property <length> inner: self.width - 28px;
+                Text { x: 14px + parent.inner * 0.00; text: "工具"; font-size: 11px; color: Theme.text-faint; vertical-alignment: center; }
+                Text { x: 14px + parent.inner * 0.52; text: "最新版本"; font-size: 11px; color: Theme.text-faint; vertical-alignment: center; }
+                Text { x: parent.width - 14px - 26px; text: "操作"; font-size: 11px; color: Theme.text-faint; vertical-alignment: center; }
+            }
+
+            // 产品组头
+            if entry.kind == 3 : GroupHeader {
+                width: parent.width;
+                item: entry;
+                toggled(product) => { root.group-toggled(product); }
+            }
+
+            // 已安装形态行
+            if entry.kind == 4 : InstallRow {
+                width: parent.width;
+                item: entry;
+                action(channel) => { root.download(channel); }
+                open(product, variant) => { root.open(product, variant); }
+            }
+
+            // 未安装条目
+            if entry.kind == 7 : UninstallRow {
+                width: parent.width;
+                item: entry;
+                install(channel) => { root.download(channel); }
+            }
+
+            // 空状态
+            if entry.kind == 8 : Text {
+                x: 18px;
+                y: 8px;
+                text: entry.text;
+                font-size: 12px;
+                color: Theme.text3;
+            }
+        }
+    }
+}
+
+export component AgentsPage inherits Rectangle {
+    in property <[AgentListRow]> installed-rows;
+    in property <[AgentListRow]> uninstalled-rows;
+    in property <int> installed-count: 0;
+    in property <int> uninstalled-count: 0;
+    in property <string> last-check: "";
+    in property <bool> checking: false;
+    in property <float> spinner-angle: 0;
+    in property <[UpdateLogRow]> log;
+    callback check-requested;
+    callback download(string);
+    callback open-agent(string, string);
+    callback group-toggled(string);
+
+    background: Theme.bg;
+    property <int> tab: 0; // 0=已安装 1=未安装
+    // 浮层开合：悬浮 (i) 或浮层即开；两者都离开后由宽限定时器关闭，
+    // 避免鼠标从图标移向浮层的间隙里浮层先隐藏导致再也无法进入。
+    property <bool> popover-open: false;
+
+    VerticalLayout {
+        spacing: 0;
+
+        // 页头：标题 + 上次检查 靠左，(i) 与检查 贴右上角
+        Rectangle {
+            height: 58px;
+            header := HorizontalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding-left: 18px;
+                padding-right: 16px;
+                spacing: 10px;
+                VerticalLayout {
+                    alignment: center;
+                    Image {
+                        source: @image-url("../../assets/icons/icon-agents.svg");
+                        width: 18px;
+                        height: 18px;
+                        image-fit: contain;
+                        colorize: Theme.text2;
+                    }
+                }
+                Text {
+                    text: "Agent 管理";
+                    font-size: 15px;
+                    font-weight: 600;
+                    color: Theme.text;
+                    vertical-alignment: center;
+                }
+                Text {
+                    text: root.last-check == "" ? "未检查" : ("上次检查：" + root.last-check);
+                    font-size: 11px;
+                    color: Theme.text3;
+                    vertical-alignment: center;
+                }
+                Rectangle { horizontal-stretch: 1; }
+                // 信息图标：悬浮展开 360×320 浮层（垂直居中；图标绝对定位居中，
+                // 布局对固定尺寸子元素的居中不可靠）
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 28px;
+                        height: 28px;
+                        border-radius: 8px;
+                        background: icon-hover.has-hover || root.popover-open ? Theme.surface2 : transparent;
+                        Image {
+                            x: (parent.width - self.width) / 2;
+                            y: (parent.height - self.height) / 2;
+                            source: @image-url("../../assets/icons/icon-info.svg");
+                            width: 18px;
+                            height: 18px;
+                            image-fit: contain;
+                            colorize: Theme.text2;
+                        }
+                        icon-hover := TouchArea {
+                            changed has-hover => {
+                                if (self.has-hover) { root.popover-open = true; }
+                            }
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 96px;
+                        height: 28px;
+                        border-radius: 7px;
+                        background: root.checking ? Theme.surface2 : (check-touch.has-hover ? Theme.accent-hover : Theme.accent);
+                        drop-shadow-blur: check-touch.has-hover && !root.checking ? 18px : 0px;
+                        drop-shadow-color: Theme.btn-glow;
+                        drop-shadow-offset-y: check-touch.has-hover ? 4px : 0px;
+                        HorizontalLayout {
+                            alignment: center;
+                            spacing: 6px;
+                            if root.checking : Image {
+                                y: (parent.height - self.height) / 2;
+                                source: @image-url("../../assets/icons/icon-spinner.svg");
+                                width: 12px;
+                                height: 12px;
+                                image-fit: contain;
+                                colorize: Theme.on-accent;
+                                // transform-origin 默认为元素中心（width/2, height/2），无需显式指定。
+                                transform-rotation: root.spinner-angle * 1deg;
+                            }
+                            Text {
+                                text: root.checking ? "检查中…" : "检查";
+                                font-size: 12px;
+                                color: root.checking ? Theme.text2 : Theme.on-accent;
+                                vertical-alignment: center;
+                            }
+                        }
+                        check-touch := TouchArea {
+                            enabled: !root.checking;
+                            clicked => { root.check-requested(); }
+                        }
+                    }
+                }
+            }
+        }
+        Rectangle {
+            height: 1px;
+            background: Theme.border;
+        }
+
+        // 已安装 / 未安装页签：轨道内一个滑块随选中项移动。
+        Rectangle {
+            height: 46px;
+            tab-track := Rectangle {
+                x: 18px;
+                y: 8px;
+                width: 216px;
+                height: 30px;
+                border-radius: 8px;
+                background: Theme.surface2;
+                border-width: 1px;
+                border-color: Theme.border;
+                Rectangle {
+                    x: 3px + root.tab * 105px;
+                    y: 3px;
+                    width: 105px;
+                    height: 24px;
+                    border-radius: 6px;
+                    background: Theme.card;
+                    border-width: 1px;
+                    border-color: Theme.border-strong;
+                    animate x { duration: 160ms; easing: ease-out; }
+                }
+                HorizontalLayout {
+                    x: 3px;
+                    y: 3px;
+                    width: 210px;
+                    height: 24px;
+                    Rectangle {
+                        width: 105px;
+                        height: parent.height;
+                        Text {
+                            text: "已安装 " + root.installed-count;
+                            font-size: 12px;
+                            font-weight: 600;
+                            color: root.tab == 0 ? Theme.text : (installed-tab.has-hover ? Theme.text2 : Theme.text3);
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                        installed-tab := TouchArea {
+                            clicked => { root.tab = 0; }
+                        }
+                    }
+                    Rectangle {
+                        width: 105px;
+                        height: parent.height;
+                        Text {
+                            text: "未安装 " + root.uninstalled-count;
+                            font-size: 12px;
+                            font-weight: 600;
+                            color: root.tab == 1 ? Theme.text : (uninstalled-tab.has-hover ? Theme.text2 : Theme.text3);
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                        uninstalled-tab := TouchArea {
+                            clicked => { root.tab = 1; }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 页签对应的列表，滚动条由各自的 ListView 提供。
+        if root.tab == 0 : AgentList {
+            vertical-stretch: 1;
+            entries: root.installed-rows;
+            download(channel) => { root.download(channel); }
+            open(product, variant) => { root.open-agent(product, variant); }
+            group-toggled(product) => { root.group-toggled(product); }
+        }
+        if root.tab == 1 : AgentList {
+            vertical-stretch: 1;
+            entries: root.uninstalled-rows;
+            download(channel) => { root.download(channel); }
+            open(product, variant) => { root.open-agent(product, variant); }
+            group-toggled(product) => { root.group-toggled(product); }
+        }
+    }
+
+    // 浮层打开时的窗外捕获层：垫在浮层之下、页面内容之上。
+    // 指针在窗外（含页面任何位置）时它持有 hover，300ms 后收起；点击立即关闭。
+    // 页签、日志滚动条都在浮层内、捕获层之上，天然保活。
+    Rectangle {
+        visible: root.popover-open;
+        catcher := TouchArea {
+            clicked => { root.popover-open = false; }
+        }
+    }
+
+    // 信息浮层：根级最后绘制，保证盖在列表卡片之上；右缘对齐 (i) 图标右缘
+    // （页右 16 + 按钮 96 + 间距 10），顶部与图标底部重叠 1px 保证悬浮连续。
+    InfoPopover {
+        x: root.width - 122px - 360px;
+        y: 42px;
+        width: 360px;
+        height: 320px;
+        visible: root.popover-open;
+        first-tab-label: "下载";
+        second-tab-label: "检查";
+        first-tab-text: "下载面板尚未开放。";
+        checking: root.checking;
+        log: root.log;
+        hover-changed(hovered) => {
+            if (hovered) { root.popover-open = true; }
+        }
+    }
+
+    // 指针离开浮层与图标 300ms 后收起。捕获层会盖住 (i) 并抢走其 hover，
+    // 因此用捕获层的指针坐标识别"仍在图标上"：图标区域 28×28，页头内垂直居中，
+    // 右缘距页右 122px（padding 16 + 按钮 96 + 间距 10）。
+    property <bool> pointer-on-icon: catcher.has-hover
+        && catcher.mouse-x >= root.width - 150px
+        && catcher.mouse-x <= root.width - 122px
+        && catcher.mouse-y >= 15px
+        && catcher.mouse-y <= 43px;
+    Timer {
+        interval: 300ms;
+        running: root.popover-open && catcher.has-hover && !icon-hover.has-hover && !pointer-on-icon;
+        triggered => { root.popover-open = false; }
+    }
+}

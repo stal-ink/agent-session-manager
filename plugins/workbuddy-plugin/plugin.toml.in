@@ -1,0 +1,66 @@
+schema = 2
+id = "workbuddy"
+label = "WorkBuddy"
+version = "@VERSION@"
+protocol = 1
+ir_version = 1
+min_host = "0.17.0"
+process = "WorkBuddy.exe"
+launch = "workbuddy"
+icon = "icon.png"
+can_write = true
+sha256 = "@SHA256@"
+group_color = "#7fd18c"
+
+[execution]
+mode = "ephemeral"
+command = "bin/agent-plugin-workbuddy.exe"
+args = []
+timeout_ms = 30000
+
+[capabilities]
+list = true
+load = true
+write = true
+delete = true
+destroy = true
+active = true
+backup_paths = true
+
+[safety]
+requires_exclusive = true
+restore_on_error = true
+delete_is_physical = false
+
+[integration]
+tracks_process = true
+close_process = ""
+close_mode = "process"
+open_session_ids = false
+archive_from_open_ids = false
+
+[[variants]]
+id = "workbuddy-desktop"
+label = "WorkBuddy"
+kind = "desktop"
+default_open = true
+
+[variants.open]
+strategy = "registry"
+command = "workbuddy"
+args = []
+session_args = []
+
+[variants.update]
+channel = "workbuddy-desktop"
+version_url = "https://www.workbuddy.cn/v2/update?platform=workbuddy-win32-x64-user&version=0.0.0"
+parser = "json"
+paths = ["version"]
+segments = 3
+min_parts = 3
+download_url = "https://www.workbuddy.cn/"
+
+[[variants.detectors]]
+type = "desktop_app"
+registry_keys = ["WorkBuddy"]
+exe = "WorkBuddy.exe"

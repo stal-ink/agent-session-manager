@@ -1,0 +1,46 @@
+import { Theme } from "../theme.slint";
+import { IconTile } from "icon-tile.slint";
+
+export component FilterItem inherits Rectangle {
+    in property <string> label;
+    in property <int> count;
+    in property <bool> selected: false;
+    in property <image> icon;
+    in property <bool> has-icon: false;
+    callback clicked;
+    height: 34px;
+    border-radius: 8px;
+    background: selected ? Theme.accent-soft : (touch.has-hover ? Theme.surface2 : transparent);
+    HorizontalLayout {
+        padding-left: 9px;
+        padding-right: 10px;
+        spacing: 9px;
+        alignment: start;
+        if has-icon : VerticalLayout {
+            alignment: center;
+            IconTile {
+                source: root.icon;
+                width: 20px;
+                height: 20px;
+                border-radius: 6px;
+            }
+        }
+        Text {
+            text: root.label;
+            font-size: 12.5px;
+            color: selected ? Theme.accent-text : Theme.text2;
+            font-weight: selected ? 600 : 400;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+        Text {
+            text: root.count;
+            font-size: 11px;
+            color: selected ? Theme.accent-text2 : Theme.text3;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}

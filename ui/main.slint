@@ -1,0 +1,1049 @@
+import { Theme } from "theme.slint";
+import { PluginRow } from "types.slint";
+import { ListView } from "std-widgets.slint";
+import {
+    SessionRow,
+    AgentFilter,
+    AgentChoice,
+    SelectionSummary,
+    AgentListRow,
+    OpenDefaultRow,
+    PluginDownloadRow,
+    PluginStoreRow,
+    ThemeCard,
+    UpdateLogRow,
+    GarbageSummary,
+    WorkspaceSuggestion,
+} from "types.slint";
+import { ActionButton } from "components/action-button.slint";
+import { FilterItem } from "components/filter-item.slint";
+import { IconButton } from "components/icon-button.slint";
+import { NavItem } from "components/nav-item.slint";
+import { Select } from "components/select.slint";
+import { SessionRowView } from "components/session-row.slint";
+import { StatusFilterItem } from "components/status-filter-item.slint";
+import { WindowControl } from "components/window-control.slint";
+import { AgentsPage } from "pages/agents-page.slint";
+import { PluginsPage } from "pages/plugins-page.slint";
+import { MorePage } from "pages/more-page.slint";
+import { SettingsPage } from "pages/settings-page.slint";
+import { TransferDialog } from "dialogs/transfer-dialog.slint";
+import { ResultDialog } from "dialogs/result-dialog.slint";
+import { SelectionDialog } from "dialogs/selection-dialog.slint";
+import { DestroyDialog } from "dialogs/destroy-dialog.slint";
+import { ExportModeDialog } from "dialogs/export-mode-dialog.slint";
+import { PluginUninstallDialog } from "dialogs/plugin-uninstall-dialog.slint";
+import { AppUpdateDialog } from "dialogs/app-update-dialog.slint";
+
+export component MainWindow inherits Window {
+    preferred-width: 1080px;
+    preferred-height: 720px;
+    title: "Agent Session Manager";
+    icon: @image-url("../assets/icon-app.svg");
+    no-frame: true;
+    resize-border-width: 6px;
+    background: Theme.bg;
+    default-font-family: "Microsoft YaHei UI";
+
+    // 启动时不让搜索框自动持有焦点，首次点击才触发下拉。
+    FocusScope {
+        width: 0px;
+        height: 0px;
+        init => { self.focus(); }
+    }
+
+    // 壁纸主题：纯色底 → 铺底图片 → 压暗层，位于所有内容之下；其余主题只看纯色底。
+    Rectangle {
+        width: root.width;
+        height: root.height;
+        background: Theme.wallpaper-base;
+    }
+
+    Image {
+        width: root.width;
+        height: root.height;
+        source: root.wallpaper-image;
+        image-fit: cover;
+        visible: root.wallpaper-visible;
+    }
+
+    Rectangle {
+        width: root.width;
+        height: root.height;
+        background: Theme.wallpaper-scrim;
+        visible: root.wallpaper-visible;
+    }
+
+    in-out property <[SessionRow]> sessions;
+    in property <string> status-text: "就绪";
+    in property <string> session-errors-text: "";
+    in property <bool> loading: false;
+    in property <string> filter: "all";
+    in property <string> app-version: "";
+    in-out property <string> search-text;
+    in property <int> count-all;
+    in property <[AgentFilter]> filters;
+    in-out property <bool> status-active: true;
+    in-out property <bool> status-archived: true;
+    in-out property <bool> status-workspace-deleted: true;
+    in-out property <bool> status-deleted: true;
+    in-out property <string> sort-mode: "flat";
+    in-out property <int> dismiss-search-token: 0;
+    in-out property <bool> search-open: false;
+    in-out property <int> search-end-token: 0;
+    in property <[WorkspaceSuggestion]> search-workspaces;
+    in property <bool> search-workspaces-more: false;
+    in property <int> visible-count: 0;
+    in property <bool> all-visible-selected: false;
+    in-out property <bool> selection-open: false;
+    in property <int> selection-count: 0;
+    in property <[SelectionSummary]> selection-summary;
+
+    in-out property <string> page: "sessions";
+    callback page-changed(string);
+    in property <[AgentListRow]> agent-installed-rows;
+    in property <[AgentListRow]> agent-uninstalled-rows;
+    in property <[PluginRow]> plugin-rows;
+    in property <int> plugin-count: 0;
+    in property <bool> plugin-importing: false;
+    in property <bool> plugin-checking: false;
+    in property <string> plugin-last-check: "";
+    in property <[UpdateLogRow]> plugin-log;
+    in property <[PluginDownloadRow]> plugin-downloads;
+    in property <[PluginStoreRow]> plugin-store-rows;
+    in property <int> plugin-store-count: 0;
+    in property <bool> plugin-store-error: false;
+    in property <bool> plugin-store-loading: false;
+    in property <bool> plugin-store-unchecked: false;
+    in property <bool> plugins-updatable: false;
+    in-out property <int> plugin-tab: 0;
+    callback plugin-import-requested();
+    callback plugin-check-requested();
+    callback plugin-install-requested(string);
+    callback plugin-toggle-requested(string, bool);
+    callback plugin-uninstall-requested(string);
+    callback plugin-update-requested(string);
+    in-out property <bool> plugin-uninstall-open: false;
+    in property <string> plugin-uninstall-label: "";
+    callback plugin-uninstall-confirm();
+    callback plugin-uninstall-cancel();
+    in property <int> installed-count: 0;
+    in property <int> uninstalled-count: 0;
+    in property <string> last-check: "";
+    in property <bool> checking: false;
+    in-out property <float> spinner-angle: 0;
+    in property <[UpdateLogRow]> update-log;
+    in property <bool> agents-updatable: false;
+    callback check-updates-requested();
+    callback agent-download(string);
+    callback agent-open(string, string);
+    callback agent-group-toggled(string);
+    in property <[GarbageSummary]> garbage-summary;
+    in property <int> garbage-count: 0;
+    in property <bool> garbage-scanned: false;
+    in property <bool> garbage-scanning: false;
+    callback garbage-scan-requested();
+    callback garbage-clear-requested();
+
+    callback refresh();
+    callback session-issues-details-requested();
+    callback filter-changed(string);
+    callback search-changed(string);
+    callback status-toggled(string, bool);
+    callback sort-changed(string);
+    callback workspace-toggled(string);
+    callback select-all();
+    callback selection-toggled(string, string, bool);
+    callback selection-open-requested();
+    callback selection-cancel-agent(string);
+    callback selection-cancel-all();
+    callback selection-delete-requested();
+    callback selection-export-requested();
+    callback transfer-requested(SessionRow);
+    callback open-requested(SessionRow);
+    callback close-window();
+
+    in-out property <bool> settings-open: false;
+    in-out property <string> settings-search;
+    in property <bool> settings-match-appearance: true;
+    in property <bool> settings-match-export: true;
+    in property <bool> settings-match-transfer: true;
+    in property <bool> settings-match-open: true;
+    in property <bool> settings-match-update: true;
+    in property <bool> settings-match-data: true;
+    in property <string> theme-choice: "system";
+    in property <[ThemeCard]> theme-cards;
+    in property <bool> wallpaper-set: false;
+    in property <image> wallpaper-image;
+    in property <bool> wallpaper-visible: false;
+    in property <bool> normal-tool-results: true;
+    in property <bool> handoff-tool-results: true;
+    in property <bool> compaction-only: false;
+    in property <bool> auto-check: true;
+    in property <[OpenDefaultRow]> open-defaults;
+    in property <string> app-update-button-text: "检查软件更新";
+    in property <bool> app-update-button-enabled: true;
+    in property <string> app-update-detail: "";
+    in property <float> app-update-progress: 0;
+    in property <string> app-update-speed: "";
+    in property <string> app-update-last-check: "";
+    in-out property <bool> app-update-confirm-open: false;
+    in property <string> app-update-confirm-version: "";
+    // 侧栏版本号旁的更新入口：0 隐藏 / 1 检查中 / 2 可更新 / 3 失败 / 4 下载中 / 5 已下载。
+    in property <int> app-update-sidebar-state: 0;
+    in property <string> app-update-sidebar-tip: "";
+    callback app-update-clicked();
+    callback settings-app-update-clicked();
+    callback settings-app-update-confirm();
+    callback settings-app-update-later();
+    callback settings-theme-changed(string);
+    callback settings-wallpaper-choose();
+    callback settings-tool-toggled(string, bool);
+    callback settings-compaction-toggled(bool);
+    callback settings-auto-check-toggled(bool);
+    callback settings-open-default-changed(string, string);
+    callback settings-open-dir(string);
+    callback settings-search-changed(string);
+
+    in-out property <bool> destroy-open: false;
+    in property <string> destroy-summary;
+    in property <string> destroy-note;
+    callback destroy-requested();
+    callback destroy-confirmed();
+    in-out property <bool> export-mode-open: false;
+    callback export-mode-chosen(string);
+
+    in-out property <bool> dialog-open: false;
+    in-out property <SessionRow> dialog-source;
+    in-out property <string> dialog-cwd;
+    in-out property <bool> dialog-native: true;
+    in-out property <[AgentChoice]> dialog-targets;
+    in-out property <string> dialog-target;
+
+    in-out property <bool> result-open: false;
+    in property <string> result-title;
+    in property <string> result-message;
+    in property <bool> result-cancel-visible: true;
+    callback result-confirm();
+    callback result-cancel();
+    callback dialog-confirm();
+    callback dialog-cancel();
+
+    VerticalLayout {
+        width: root.width;
+        height: root.height;
+        spacing: 0;
+
+        // 自定义标题栏：无系统边框时负责拖动、双击最大化与窗口控制。
+    Rectangle {
+            horizontal-stretch: 1;
+            height: 44px;
+            background: Theme.surface;
+
+            HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 8px;
+                spacing: 8px;
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    height: parent.height;
+                    HorizontalLayout {
+                        width: parent.width;
+                        height: parent.height;
+                        spacing: 10px;
+                        alignment: start;
+                        VerticalLayout {
+                            alignment: center;
+                            Image {
+                                source: @image-url("../assets/icon-app.svg");
+                                width: 22px;
+                                height: 22px;
+                                image-fit: contain;
+                            }
+                        }
+
+                        VerticalLayout {
+                            spacing: 1px;
+                            alignment: center;
+                            Text {
+                                text: "Agent Session Manager";
+                                font-size: 12.5px;
+                                font-weight: 700;
+                                color: Theme.text;
+                            }
+
+                            Text {
+                                text: "Multi-Agent Sessions";
+                                font-size: 10.5px;
+                                color: Theme.text3;
+                            }
+                        }
+                    }
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    HorizontalLayout {
+                        spacing: 2px;
+                        alignment: end;
+                        WindowControl {
+                            kind: 0;
+                            clicked => { root.minimized = true; }
+                        }
+
+                        WindowControl {
+                            kind: 1;
+                            maximized: root.maximized;
+                            clicked => { root.maximized = !root.maximized; }
+                        }
+
+                        WindowControl {
+                            kind: 2;
+                            clicked => { root.close-window(); }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                y: parent.height - 1px;
+                width: parent.width;
+                height: 1px;
+                background: Theme.border;
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+
+            // 设置整页：覆盖主界面与左侧栏；关闭后主界面状态原样保留。
+    if root.settings-open: SettingsPage {
+                width: parent.width;
+                height: parent.height;
+                search-text <=> root.settings-search;
+                match-appearance: root.settings-match-appearance;
+                match-export: root.settings-match-export;
+                match-transfer: root.settings-match-transfer;
+                match-open: root.settings-match-open;
+                match-update: root.settings-match-update;
+                match-data: root.settings-match-data;
+                theme-choice: root.theme-choice;
+                theme-cards: root.theme-cards;
+                wallpaper-set: root.wallpaper-set;
+                normal-tool-results: root.normal-tool-results;
+                handoff-tool-results: root.handoff-tool-results;
+                compaction-only: root.compaction-only;
+                auto-check: root.auto-check;
+                open-defaults: root.open-defaults;
+                app-version: root.app-version;
+                app-update-button-text: root.app-update-button-text;
+                app-update-button-enabled: root.app-update-button-enabled;
+                app-update-detail: root.app-update-detail;
+                app-update-progress: root.app-update-progress;
+                app-update-speed: root.app-update-speed;
+                app-update-last-check: root.app-update-last-check;
+                app-update-clicked => { root.settings-app-update-clicked(); }
+                back => { root.settings-open = false; }
+                theme-changed(t) => { root.settings-theme-changed(t); }
+                wallpaper-choose => { root.settings-wallpaper-choose(); }
+                tool-toggled(kind, value) => { root.settings-tool-toggled(kind, value); }
+                compaction-toggled(value) => { root.settings-compaction-toggled(value); }
+                auto-check-toggled(value) => { root.settings-auto-check-toggled(value); }
+                open-default-changed(product, label) => { root.settings-open-default-changed(product, label); }
+                open-dir(dir) => { root.settings-open-dir(dir); }
+                search-changed(text) => { root.settings-search-changed(text); }
+            }
+            if !root.settings-open: HorizontalLayout {
+                width: parent.width;
+                height: parent.height;
+                spacing: 0;
+
+                Rectangle {
+                    width: 208px;
+                    background: Theme.surface;
+                    border-width: 0;
+                    VerticalLayout {
+                        padding-left: 12px;
+                        padding-right: 12px;
+                        padding-top: 12px;
+                        padding-bottom: 12px;
+                        spacing: 6px;
+                        VerticalLayout {
+                            spacing: 2px;
+                            FilterItem {
+                                label: "全部会话";
+                                icon: @image-url("../assets/icon-app.svg");
+                                has-icon: true;
+                                count: root.count-all;
+                                selected: root.filter == "all";
+                                clicked => {
+                                    root.dismiss-search-token += 1;
+                                    root.filter-changed("all");
+                                }
+                            }
+
+                            for f in root.filters: FilterItem {
+                                label: f.label;
+                                icon: f.icon;
+                                has-icon: true;
+                                count: f.count;
+                                selected: f.selected;
+                                clicked => {
+                                    root.dismiss-search-token += 1;
+                                    root.filter-changed(f.id);
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            vertical-stretch: 1;
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: Theme.border;
+                        }
+
+                        Rectangle {
+                            height: 8px;
+                        }
+
+                        VerticalLayout {
+                            spacing: 2px;
+                            NavItem {
+                                label: "Agent 管理";
+                                icon: @image-url("../assets/icons/icon-agents.svg");
+                                selected: root.page == "agents";
+                                show-dot: root.agents-updatable;
+                                clicked => {
+                                    root.search-open = false;
+                                    root.dismiss-search-token += 1;
+                                    root.page-changed("agents");
+                                }
+                            }
+
+                            NavItem {
+                                label: "插件";
+                                icon: @image-url("../assets/icons/icon-puzzle.svg");
+                                selected: root.page == "plugins";
+                                show-dot: root.plugins-updatable;
+                                clicked => {
+                                    root.search-open = false;
+                                    root.dismiss-search-token += 1;
+                                    root.page-changed("plugins");
+                                }
+                            }
+
+                            NavItem {
+                                label: "更多";
+                                icon: @image-url("../assets/icons/icon-more.svg");
+                                selected: root.page == "more";
+                                clicked => {
+                                    root.search-open = false;
+                                    root.dismiss-search-token += 1;
+                                    root.page-changed("more");
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 8px;
+                        }
+
+                        footer-row := Rectangle {
+                            height: 26px;
+                            background: transparent;
+                            // 只有确认有新版本、正在下载或已下载时才显示更新按钮。
+                            property <bool> update-tip-open: false;
+
+                            // 版本号 + 紧挨其右侧的更新按钮。
+                            HorizontalLayout {
+                                x: 0px;
+                                y: (parent.height - self.height) / 2;
+                                height: 24px;
+                                spacing: 6px;
+                                alignment: start;
+                                Text {
+                                    text: "v" + root.app-version;
+                                    font-size: 10px;
+                                    color: Theme.text-faint;
+                                    vertical-alignment: center;
+                                }
+                                Rectangle {
+                                    width: 24px;
+                                    height: 24px;
+                                    border-radius: 7px;
+                                    visible: root.app-update-sidebar-state != 0;
+                                    background: update-touch.has-hover ? Theme.surface2 : transparent;
+                                    if root.app-update-sidebar-state == 4 : Image {
+                                        x: (parent.width - self.width) / 2;
+                                        y: (parent.height - self.height) / 2;
+                                        width: 14px;
+                                        height: 14px;
+                                        source: @image-url("../assets/icons/icon-spinner.svg");
+                                        image-fit: contain;
+                                        colorize: Theme.accent-text;
+                                        transform-rotation: root.spinner-angle * 1deg;
+                                    }
+                                    if root.app-update-sidebar-state != 4 : Image {
+                                        x: (parent.width - self.width) / 2;
+                                        y: (parent.height - self.height) / 2;
+                                        width: 14px;
+                                        height: 14px;
+                                        source: @image-url("../assets/icons/icon-download.svg");
+                                        image-fit: contain;
+                                        colorize: Theme.tag-active-text;
+                                    }
+                                    update-touch := TouchArea {
+                                        clicked => {
+                                            if (root.app-update-sidebar-state != 4) {
+                                                root.app-update-clicked();
+                                            }
+                                        }
+                                        changed has-hover => {
+                                            footer-row.update-tip-open = self.has-hover
+                                                && root.app-update-sidebar-tip != "";
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 一句话说明贴着版本行上方，不拦截鼠标，避免闪动。
+                            if footer-row.update-tip-open : Rectangle {
+                                x: 0px;
+                                y: -32px;
+                                width: parent.width;
+                                height: 26px;
+                                border-radius: 7px;
+                                border-width: 1px;
+                                border-color: Theme.dialog-border;
+                                background: Theme.dialog-bg;
+                                drop-shadow-blur: 16px;
+                                drop-shadow-color: Theme.dialog-shadow;
+                                drop-shadow-offset-y: 4px;
+                                Text {
+                                    x: 8px;
+                                    width: parent.width - 16px;
+                                    text: root.app-update-sidebar-tip;
+                                    font-size: 11.5px;
+                                    color: Theme.text2;
+                                    vertical-alignment: center;
+                                    overflow: elide;
+                                }
+                            }
+
+                            HorizontalLayout {
+                                x: parent.width - 56px;
+                                y: (parent.height - self.height) / 2;
+                                width: 56px;
+                                spacing: 4px;
+                                alignment: end;
+                                IconButton {
+                                    icon-size: 24px;
+                                    glyph-size: 14px;
+                                    has-icon: true;
+                                    icon: @image-url("../assets/icons/icon-folder.svg");
+                                    clicked => { root.settings-open-dir("data"); }
+                                }
+
+                                IconButton {
+                                    icon-size: 24px;
+                                    glyph-size: 14px;
+                                    has-icon: true;
+                                    icon: @image-url("../assets/icons/icon-settings.svg");
+                                    clicked => {
+                                        root.search-open = false;
+                                        root.dismiss-search-token += 1;
+                                        root.settings-open = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: 1px;
+                    background: Theme.border;
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    background: Theme.bg;
+                    if root.page == "sessions": VerticalLayout {
+                        width: parent.width;
+                        height: parent.height;
+                        spacing: 0;
+                        Rectangle {
+                            height: 58px;
+                            HorizontalLayout {
+                                padding-left: 18px;
+                                padding-right: 16px;
+                                spacing: 12px;
+                                Text {
+                                    text: "会话总览";
+                                    font-size: 15px;
+                                    font-weight: 600;
+                                    color: Theme.text;
+                                    vertical-alignment: center;
+                                }
+
+                                VerticalLayout {
+                                    alignment: center;
+                                    Rectangle {
+                                        height: 20px;
+                                        border-radius: 10px;
+                                        background: Theme.surface2;
+                                        HorizontalLayout {
+                                            padding-left: 8px;
+                                            padding-right: 8px;
+                                            alignment: center;
+                                            Text {
+                                                text: root.visible-count;
+                                                font-size: 10.5px;
+                                                color: Theme.text2;
+                                                vertical-alignment: center;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    horizontal-stretch: 1;
+                                }
+
+                                VerticalLayout {
+                                    alignment: center;
+                                    Rectangle {
+                                        width: 250px;
+                                        height: 30px;
+                                        border-radius: 8px;
+                                        border-width: 1px;
+                                        border-color: search-input.has-focus ? Theme.border-accent : Theme.border;
+                                        background: Theme.input-bg;
+                                        clip: true;
+                                        HorizontalLayout {
+                                            padding-left: 10px;
+                                            padding-right: 10px;
+                                            spacing: 6px;
+                                            Rectangle {
+                                                horizontal-stretch: 1;
+                                                background: transparent;
+                                                search-input := TextInput {
+                                                    property <int> dismiss-token <=> root.dismiss-search-token;
+                                                    property <int> end-token <=> root.search-end-token;
+                                                    width: parent.width;
+                                                    height: parent.height;
+                                                    text <=> root.search-text;
+                                                    color: Theme.text;
+                                                    font-size: 12px;
+                                                    single-line: true;
+                                                    selection-background-color: Theme.accent;
+                                                    vertical-alignment: center;
+                                                    changed text => { root.search-changed(self.text); }
+                                                    changed dismiss-token => { self.clear-focus(); }
+                                                    changed end-token => {
+                                                        self.focus();
+                                                        self.set-selection-offsets(999999, 999999);
+                                                    }
+                                                    changed has-focus => {
+                                                        root.search-open = self.has-focus;
+                                                    }
+                                                }
+
+                                                if root.search-text == "": Text {
+                                                    x: 1px;
+                                                    y: (parent.height - self.height) / 2;
+                                                    text: "搜索标题或工作区";
+                                                    color: Theme.text3;
+                                                    font-size: 12px;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                VerticalLayout {
+                                    alignment: center;
+                                    ActionButton {
+                                        width: 80px;
+                                        text: root.all-visible-selected ? "取消全选" : "全选";
+                                        enabled: root.visible-count > 0;
+                                        clicked => {
+                                            search-input.clear-focus();
+                                            root.select-all();
+                                        }
+                                    }
+                                }
+
+                                VerticalLayout {
+                                    alignment: center;
+                                    ActionButton {
+                                        width: 80px;
+                                        text: "选择";
+                                        primary: root.selection-count > 0;
+                                        enabled: root.selection-count > 0;
+                                        clicked => {
+                                            search-input.clear-focus();
+                                            root.selection-open-requested();
+                                        }
+                                    }
+                                }
+
+                                VerticalLayout {
+                                    alignment: center;
+                                    ActionButton {
+                                        width: 80px;
+                                        enabled: !root.loading;
+                                        text: root.loading ? "刷新中…" : "刷新";
+                                        clicked => { root.refresh(); }
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: Theme.border;
+                        }
+
+                        Rectangle {
+                            height: 44px;
+                            background: Theme.bg;
+                            HorizontalLayout {
+                                padding-left: 18px;
+                                padding-right: 16px;
+                                spacing: 8px;
+                                HorizontalLayout {
+                                    spacing: 16px;
+                                    alignment: start;
+                                    Text {
+                                        text: "状态";
+                                        height: 44px;
+                                        font-size: 12px;
+                                        color: Theme.text3;
+                                        vertical-alignment: center;
+                                    }
+
+                                    StatusFilterItem {
+                                        label: "活跃中";
+                                        kind: 1;
+                                        checked: root.status-active;
+                                        toggled(value) => {
+                                            search-input.clear-focus();
+                                            root.status-toggled("active", value);
+                                        }
+                                    }
+
+                                    StatusFilterItem {
+                                        label: "已归档";
+                                        kind: 2;
+                                        checked: root.status-archived;
+                                        toggled(value) => {
+                                            search-input.clear-focus();
+                                            root.status-toggled("archived", value);
+                                        }
+                                    }
+
+                                    StatusFilterItem {
+                                        label: "工作区归档/删除";
+                                        kind: 3;
+                                        checked: root.status-workspace-deleted;
+                                        toggled(value) => {
+                                            search-input.clear-focus();
+                                            root.status-toggled("workspace", value);
+                                        }
+                                    }
+
+                                    StatusFilterItem {
+                                        label: "已删除";
+                                        kind: 4;
+                                        checked: root.status-deleted;
+                                        toggled(value) => {
+                                            search-input.clear-focus();
+                                            root.status-toggled("deleted", value);
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    horizontal-stretch: 1;
+                                }
+
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    alignment: end;
+                                    VerticalLayout {
+                                        alignment: center;
+                                        Select {
+                                            width: 96px;
+                                            seamless: true;
+                                            options: ["平铺", "工作区"];
+                                            value: root.sort-mode == "workspace" ? "工作区" : "平铺";
+                                            changed(v) => {
+                                                search-input.clear-focus();
+                                                root.sort-changed(v == "工作区" ? "workspace" : "flat");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: Theme.border;
+                        }
+
+                        // 后台读取失败或跳过会话时保留成功结果，并在列表上方提示。
+                        if root.session-errors-text != "" : Rectangle {
+                            height: 26px;
+                            background: Theme.surface2;
+                            TouchArea {
+                                clicked => { root.session-issues-details-requested(); }
+                            }
+                            HorizontalLayout {
+                                x: 18px;
+                                width: parent.width - 36px;
+                                height: parent.height;
+                                spacing: 10px;
+                                Text {
+                                    text: root.session-errors-text;
+                                    font-size: 11px;
+                                    color: Theme.warn;
+                                    vertical-alignment: center;
+                                    horizontal-stretch: 1;
+                                    overflow: elide;
+                                }
+                                Text {
+                                    text: "查看详情";
+                                    font-size: 11px;
+                                    color: Theme.warn;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            vertical-stretch: 1;
+                            background: Theme.bg;
+                            TouchArea {
+                                width: parent.width;
+                                height: parent.height;
+                                clicked => { search-input.clear-focus(); }
+                            }
+
+                            VerticalLayout {
+                                padding: 10px;
+                                ListView {
+                                    min-width: 0px;
+                                    min-height: 0px;
+                                    for row in root.sessions: SessionRowView {
+                                        session: row;
+                                        transfer => { root.transfer-requested(row); }
+                                        open => { root.open-requested(row); }
+                                        dismiss => { search-input.clear-focus(); }
+                                        workspace-toggled(key) => { root.workspace-toggled(key); }
+                                        selection-toggled(value) => {
+                                            root.selection-toggled(row.agent, row.id, value);
+                                        }
+                                    }
+                                }
+                            }
+
+                            if root.sessions.length == 0 && !root.loading: Text {
+                                x: (parent.width - self.width) / 2;
+                                y: (parent.height - self.height) / 2;
+                                text: "没有匹配的会话";
+                                font-size: 13px;
+                                color: Theme.text3;
+                            }
+                        }
+                    }
+                    if root.page == "agents": AgentsPage {
+                        width: parent.width;
+                        height: parent.height;
+                        installed-rows: root.agent-installed-rows;
+                        uninstalled-rows: root.agent-uninstalled-rows;
+                        installed-count: root.installed-count;
+                        uninstalled-count: root.uninstalled-count;
+                        last-check: root.last-check;
+                        checking: root.checking;
+                        spinner-angle: root.spinner-angle;
+                        log: root.update-log;
+                        check-requested => { root.check-updates-requested(); }
+                        download(channel) => { root.agent-download(channel); }
+                        open-agent(product, variant) => { root.agent-open(product, variant); }
+                        group-toggled(product) => { root.agent-group-toggled(product); }
+                    }
+                    if root.page == "plugins": PluginsPage {
+                        width: parent.width;
+                        height: parent.height;
+                        rows: root.plugin-rows;
+                        count: root.plugin-count;
+                        importing: root.plugin-importing;
+                        checking: root.plugin-checking;
+                        spinner-angle: root.spinner-angle;
+                        last-check: root.plugin-last-check;
+                        log: root.plugin-log;
+                        downloads: root.plugin-downloads;
+                        store-rows: root.plugin-store-rows;
+                        store-count: root.plugin-store-count;
+                        store-error: root.plugin-store-error;
+                        store-loading: root.plugin-store-loading;
+                        store-unchecked: root.plugin-store-unchecked;
+                        tab <=> root.plugin-tab;
+                        import-requested => { root.plugin-import-requested(); }
+                        check-requested => { root.plugin-check-requested(); }
+                        install-requested(id) => { root.plugin-install-requested(id); }
+                        toggle-requested(id, value) => { root.plugin-toggle-requested(id, value); }
+                        uninstall-requested(id) => { root.plugin-uninstall-requested(id); }
+                        update-requested(id) => { root.plugin-update-requested(id); }
+                    }
+                    if root.page == "more": MorePage {
+                        width: parent.width;
+                        height: parent.height;
+                        summary: root.garbage-summary;
+                        total-count: root.garbage-count;
+                        scanned: root.garbage-scanned;
+                        scanning: root.garbage-scanning;
+                        scan => { root.garbage-scan-requested(); }
+                        clear => { root.garbage-clear-requested(); }
+                    }
+                }
+            }
+        }
+    }
+
+    // 工作区建议：根级绝对定位浮层。不走 PopupWindow，避免窗口缩放后错位，
+    // 也不遮挡搜索框以外的控件；右侧 542px = 16 内边距 + 3×80 按钮 + 3×12 间距 + 250 搜索框。
+    if root.search-open && (root.search-workspaces.length > 0 || root.search-workspaces-more): Rectangle {
+        x: root.width - 542px;
+        y: 92px;
+        width: 250px;
+        height: (root.search-workspaces.length + (root.search-workspaces-more ? 1 : 0)) * 34px + 8px;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.dialog-border;
+        background: Theme.dialog-bg;
+        drop-shadow-blur: 18px;
+        drop-shadow-color: Theme.dialog-shadow;
+        drop-shadow-offset-y: 4px;
+        VerticalLayout {
+            padding: 4px;
+            spacing: 0;
+            for w in root.search-workspaces: Rectangle {
+                height: 34px;
+                border-radius: 6px;
+                background: ws-touch.has-hover ? Theme.surface2 : transparent;
+                VerticalLayout {
+                    padding-left: 8px;
+                    padding-right: 8px;
+                    alignment: center;
+                    spacing: 1px;
+                    Text {
+                        text: w.name;
+                        font-size: 11.5px;
+                        font-weight: 600;
+                        color: Theme.text;
+                        overflow: elide;
+                    }
+
+                    Text {
+                        text: w.path;
+                        font-size: 9.5px;
+                        color: Theme.text3;
+                        overflow: elide;
+                    }
+                }
+
+                ws-touch := TouchArea {
+                    clicked => {
+                        root.search-text = w.path;
+                        root.search-changed(w.path);
+                        root.search-open = false;
+                        root.search-end-token += 1;
+                    }
+                }
+            }
+            if root.search-workspaces-more: Rectangle {
+                height: 34px;
+                Text {
+                    x: 8px;
+                    text: "…";
+                    font-size: 12px;
+                    color: Theme.text3;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+
+    if root.dialog-open: TransferDialog {
+        overlay-width: parent.width;
+        overlay-height: parent.height;
+        source: root.dialog-source;
+        cwd <=> root.dialog-cwd;
+        native <=> root.dialog-native;
+        targets: root.dialog-targets;
+        target <=> root.dialog-target;
+        confirm => { root.dialog-confirm(); }
+        cancel => { root.dialog-cancel(); }
+    }
+
+    if root.result-open: ResultDialog {
+        overlay-width: parent.width;
+        overlay-height: parent.height;
+        title: root.result-title;
+        message: root.result-message;
+        cancel-visible: root.result-cancel-visible;
+        confirm => { root.result-confirm(); }
+        cancel => { root.result-cancel(); }
+    }
+
+    if root.selection-open: SelectionDialog {
+        overlay-width: parent.width;
+        overlay-height: parent.height;
+        summary: root.selection-summary;
+        total-count: root.selection-count;
+        cancel-agent(agent) => { root.selection-cancel-agent(agent); }
+        cancel-all => { root.selection-cancel-all(); }
+        delete => { root.selection-delete-requested(); }
+        destroy => { root.destroy-requested(); }
+        export-selected => { root.selection-export-requested(); }
+        close => { root.selection-open = false; }
+    }
+
+    if root.destroy-open: DestroyDialog {
+        overlay-width: parent.width;
+        overlay-height: parent.height;
+        summary: root.destroy-summary;
+        note: root.destroy-note;
+        destroy-confirmed => { root.destroy-confirmed(); }
+        close => { root.destroy-open = false; }
+    }
+
+    if root.export-mode-open: ExportModeDialog {
+        overlay-width: parent.width;
+        overlay-height: parent.height;
+        mode-chosen(mode) => { root.export-mode-chosen(mode); }
+        close => { root.export-mode-open = false; }
+    }
+
+    if root.plugin-uninstall-open: PluginUninstallDialog {
+        overlay-width: parent.width;
+        overlay-height: parent.height;
+        label: root.plugin-uninstall-label;
+        confirm => { root.plugin-uninstall-confirm(); }
+        close => { root.plugin-uninstall-cancel(); }
+    }
+
+    if root.app-update-confirm-open: AppUpdateDialog {
+        overlay-width: parent.width;
+        overlay-height: parent.height;
+        version: root.app-update-confirm-version;
+        confirm => { root.settings-app-update-confirm(); }
+        later => { root.settings-app-update-later(); }
+    }
+}

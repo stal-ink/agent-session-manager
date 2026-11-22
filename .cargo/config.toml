@@ -1,0 +1,4 @@
+# 构建机专属的 rustflags remap 映射放在未被跟踪的 config.local.toml（模板见
+# config.local.example.toml）。include 指向的文件缺失时 cargo 直接报错，
+# build.cmd 启动前会检查并给出提示。换构建机、换 cargo 镜像或移动仓库后更新 local 文件。
+include = ["config.local.toml"]

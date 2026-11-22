@@ -1,0 +1,22 @@
+import { Theme } from "../theme.slint";
+
+export component IconTile inherits Rectangle {
+    in property <image> source;
+    /// 非透明时把单色图标染成该颜色；品牌图标保持默认透明不着色。
+    in property <color> tint: transparent;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: Theme.icon-tile-bg;
+    border-width: 1px;
+    border-color: Theme.icon-tile-border;
+    Image {
+        x: 2px;
+        y: 2px;
+        width: parent.width - 4px;
+        height: parent.height - 4px;
+        source: root.source;
+        image-fit: contain;
+        colorize: root.tint;
+    }
+}

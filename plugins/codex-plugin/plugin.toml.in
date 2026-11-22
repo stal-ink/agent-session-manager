@@ -1,0 +1,122 @@
+schema = 2
+id = "codex"
+label = "Codex"
+version = "@VERSION@"
+protocol = 1
+ir_version = 1
+min_host = "0.17.0"
+process = "codex.exe"
+launch = "codex"
+icon = "icon.png"
+can_write = true
+sha256 = "@SHA256@"
+group_color = "#10a37f"
+
+[execution]
+mode = "ephemeral"
+command = "bin/agent-plugin-codex.exe"
+args = []
+timeout_ms = 120000
+
+[capabilities]
+list = true
+load = true
+write = true
+delete = true
+destroy = true
+active = true
+backup_paths = true
+
+[safety]
+requires_exclusive = false
+restore_on_error = false
+delete_is_physical = false
+
+[integration]
+tracks_process = false
+close_process = "ChatGPT.exe"
+close_mode = "process"
+open_session_ids = false
+archive_from_open_ids = false
+
+[[variants]]
+id = "codex-cli"
+label = "Codex CLI"
+kind = "cli"
+default_open = true
+[variants.open]
+strategy = "command"
+command = "codex"
+args = []
+session_args = ["resume", "{session_id}"]
+[variants.update]
+channel = "codex-cli"
+version_url = "https://registry.npmjs.org/@openai/codex/latest"
+parser = "json"
+paths = ["version"]
+download_url = "https://www.npmjs.com/package/@openai/codex"
+[[variants.detectors]]
+type = "command_version"
+command = "codex"
+args = ["--version"]
+[[variants.detectors]]
+type = "npm_package"
+root = "%APPDATA%/npm/node_modules"
+package = "@openai/codex"
+[[variants.detectors]]
+type = "native_binary"
+path = "~/.codex/packages/app-server-daemon/current/bin/codex.exe"
+
+[[variants]]
+id = "codex-vscode"
+label = "Codex for VS Code"
+kind = "vsix"
+default_open = false
+[variants.open]
+strategy = "vscode_workspace"
+command = ""
+args = []
+session_args = []
+session_uri = "vscode://openai.chatgpt/local/{session_id}"
+[variants.update]
+channel = "codex-vscode"
+version_url = "https://marketplace.visualstudio.com/items?itemName=openai.chatgpt"
+parser = "regex"
+patterns = [
+    '"Versions":\s*\[\s*\{[^}]*?"version"\s*:\s*"([^"]+)"',
+    '"Version"\s*:\s*"([^"]+)"',
+]
+download_url = "https://marketplace.visualstudio.com/items?itemName=openai.chatgpt"
+[[variants.detectors]]
+type = "vscode_extension"
+roots = [".vscode", ".vscode-cn"]
+prefix = "openai.chatgpt-"
+
+[[variants]]
+id = "codex-desktop"
+label = "Codex (ChatGPT 桌面端)"
+kind = "desktop"
+default_open = false
+[variants.open]
+strategy = "uri"
+command = "codex://launch"
+session_uri = "codex://threads/{session_id}"
+args = []
+session_args = []
+[variants.update]
+channel = "codex-desktop"
+version_url = "https://persistent.oaistatic.com/codex-app-prod/windows-store-update.json"
+parser = "json"
+paths = ["packageVersion", "buildVersion"]
+download_url = "https://apps.microsoft.com/detail/9PLM9XGG6VKS"
+[[variants.detectors]]
+type = "command_version"
+command = "powershell"
+args = ["-NoProfile", "-NonInteractive", "-Command", "(Get-AppxPackage -Name OpenAI.Codex).Version.ToString()"]
+[[variants.detectors]]
+type = "native_binary"
+path = "%LOCALAPPDATA%/Microsoft/WindowsApps/chatgpt-desktop.exe"
+[[variants.detectors]]
+type = "desktop_app"
+registry_keys = ["ChatGPT", "Codex"]
+exe = "ChatGPT.exe"

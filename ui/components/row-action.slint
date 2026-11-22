@@ -1,0 +1,31 @@
+import { Theme } from "../theme.slint";
+
+// 列表行操作图标：启动为无边框图标，下载为描边图标；不可用时图标变灰且不可点击。
+export component RowAction inherits Rectangle {
+    in property <image> icon;
+    in property <color> icon-color: Theme.text2;
+    in property <bool> bordered: false;
+    in property <bool> enabled: true;
+    callback clicked;
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    border-width: root.bordered ? 1px : 0px;
+    border-color: root.enabled
+        ? (touch.has-hover ? Theme.border-strong : Theme.border)
+        : Theme.border;
+    background: root.enabled && touch.has-hover ? Theme.surface2 : transparent;
+    Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 14px;
+        height: 14px;
+        source: root.icon;
+        image-fit: contain;
+        colorize: root.enabled ? root.icon-color : Theme.text-faint;
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+}

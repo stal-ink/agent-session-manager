@@ -1,0 +1,166 @@
+import { Theme } from "../theme.slint";
+import { SessionRow } from "../types.slint";
+import { ActionButton } from "action-button.slint";
+import { ArchiveTag } from "archive-tag.slint";
+import { CheckBox } from "check-box.slint";
+import { IconTile } from "icon-tile.slint";
+
+export component SessionRowView inherits Rectangle {
+    in property <SessionRow> session;
+    callback transfer;
+    callback open;
+    callback selection-toggled(bool);
+    callback workspace-toggled(string);
+    callback dismiss;
+    height: root.session.header ? 34px : 64px;
+    background: transparent;
+
+    // 工作区分组标题：全宽行，展开三角 + 工作区名 + 完整路径 + 会话数，点击展开或收起。
+    if root.session.header : Rectangle {
+        x: 2px;
+        width: parent.width - 4px;
+        height: 34px;
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: Theme.border-accent;
+        background: header-touch.has-hover
+            ? Theme.accent-soft.mix(Theme.accent, 0.70)
+            : Theme.accent-soft.mix(Theme.accent, 0.82);
+        header-touch := TouchArea {
+            clicked => {
+                root.dismiss();
+                root.workspace-toggled(root.session.header-key);
+            }
+        }
+        HorizontalLayout {
+            x: 10px;
+            width: parent.width - 20px;
+            height: parent.height;
+            spacing: 8px;
+            VerticalLayout {
+                alignment: center;
+                Path {
+                    width: 8px;
+                    height: 8px;
+                    fill: Theme.accent-text;
+                    commands: root.session.header-expanded
+                        ? "M 0.5 2.5 L 7.5 2.5 L 4 6 Z"
+                        : "M 2.5 0.5 L 6 4 L 2.5 7.5 Z";
+                }
+            }
+            Text {
+                text: root.session.header-label;
+                font-size: 12px;
+                font-weight: 700;
+                color: Theme.text;
+                vertical-alignment: center;
+            }
+            Text {
+                text: root.session.header-path;
+                font-size: 11px;
+                color: Theme.text2;
+                overflow: elide;
+                min-width: 0px;
+                horizontal-stretch: 1;
+                vertical-alignment: center;
+            }
+            Text {
+                text: root.session.header-count + " 个会话";
+                font-size: 11px;
+                color: Theme.accent-text;
+                vertical-alignment: center;
+            }
+        }
+    }
+
+    if !root.session.header : Rectangle {
+        x: 2px;
+        y: 2px;
+        width: parent.width - 4px;
+        height: 60px;
+        border-radius: 10px;
+        background: root.session.selected
+            ? Theme.accent-soft
+            : (card-touch.has-hover ? Theme.card-hover : Theme.card);
+        border-width: 1px;
+        border-color: card-touch.has-hover ? Theme.border-accent : Theme.border;
+        card-touch := TouchArea {
+            clicked => { root.dismiss(); }
+        }
+        HorizontalLayout {
+            padding-left: 12px;
+            padding-right: 12px;
+            spacing: 12px;
+            VerticalLayout {
+                alignment: center;
+                CheckBox {
+                    checked: root.session.selected;
+                    toggled(value) => {
+                        root.dismiss();
+                        root.selection-toggled(value);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                IconTile {
+                    source: root.session.icon;
+                }
+            }
+            VerticalLayout {
+                horizontal-stretch: 1;
+                min-width: 0px;
+                alignment: center;
+                spacing: 2px;
+                Text {
+                    text: root.session.title == "" ? "(无标题)" : root.session.title;
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: Theme.text;
+                    overflow: elide;
+                    min-width: 0px;
+                }
+                Text {
+                    text: root.session.cwd + "  ·  " + root.session.updated + "  ·  " + root.session.count + " 条消息";
+                    font-size: 11px;
+                    color: Theme.text2;
+                    overflow: elide;
+                    min-width: 0px;
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                HorizontalLayout {
+                    spacing: 6px;
+                    alignment: start;
+                    ArchiveTag {
+                        archived: root.session.archived;
+                        deleted: root.session.deleted;
+                        workspace-deleted: root.session.workspace-deleted;
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                ActionButton {
+                    text: "转接";
+                    primary: true;
+                    clicked => {
+                        root.dismiss();
+                        root.transfer();
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                ActionButton {
+                    text: "打开";
+                    clicked => {
+                        root.dismiss();
+                        root.open();
+                    }
+                }
+            }
+        }
+    }
+}

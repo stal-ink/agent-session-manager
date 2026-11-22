@@ -1,0 +1,112 @@
+import { Theme } from "../theme.slint";
+import { ActionButton } from "../components/action-button.slint";
+
+/// 批量导出方式选择：每次点击导出都弹出，不记忆默认方式。
+export component ExportModeDialog inherits Rectangle {
+    in property <length> overlay-width: 1080px;
+    in property <length> overlay-height: 720px;
+    callback mode-chosen(string);
+    callback close;
+
+    width: root.overlay-width;
+    height: root.overlay-height;
+    background: Theme.overlay;
+    TouchArea {
+        clicked => { root.close(); }
+    }
+    Rectangle {
+        width: 420px;
+        height: 230px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: 14px;
+        background: Theme.dialog-bg;
+        border-width: 1px;
+        border-color: Theme.dialog-border;
+        drop-shadow-blur: 32px;
+        drop-shadow-color: Theme.dialog-shadow;
+        drop-shadow-offset-y: 10px;
+        TouchArea { }
+        VerticalLayout {
+            padding: 22px;
+            spacing: 12px;
+            Text {
+                text: "选择导出方式";
+                font-size: 15px;
+                font-weight: 700;
+                color: Theme.text;
+            }
+            // 两张方式卡等宽：绝对定位各占一半，尺寸不随文字长短变化
+            Rectangle {
+                vertical-stretch: 1;
+                property <length> card-width: (self.width - 10px) / 2;
+                Rectangle {
+                    x: 0px;
+                    width: parent.card-width;
+                    height: parent.height;
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: touch-normal.has-hover ? Theme.accent : Theme.border;
+                    background: touch-normal.has-hover ? Theme.accent-soft : Theme.option-bg;
+                    VerticalLayout {
+                        padding: 12px;
+                        spacing: 4px;
+                        alignment: center;
+                        Text {
+                            text: "普通文档";
+                            font-size: 13px;
+                            font-weight: 600;
+                            color: Theme.text;
+                        }
+                        Text {
+                            text: "全量消息、思考与工具调用，适合归档与全文检索。";
+                            font-size: 10.5px;
+                            color: Theme.text3;
+                            wrap: word-wrap;
+                        }
+                    }
+                    touch-normal := TouchArea {
+                        clicked => { root.mode-chosen("normal"); }
+                    }
+                }
+                Rectangle {
+                    x: parent.card-width + 10px;
+                    width: parent.card-width;
+                    height: parent.height;
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: touch-handoff.has-hover ? Theme.accent : Theme.border;
+                    background: touch-handoff.has-hover ? Theme.accent-soft : Theme.option-bg;
+                    VerticalLayout {
+                        padding: 12px;
+                        spacing: 4px;
+                        alignment: center;
+                        Text {
+                            text: "交接文档";
+                            font-size: 13px;
+                            font-weight: 600;
+                            color: Theme.text;
+                        }
+                        Text {
+                            text: "按固定规则精简的目标、变更与待办，适合换 agent 续聊。";
+                            font-size: 10.5px;
+                            color: Theme.text3;
+                            wrap: word-wrap;
+                        }
+                    }
+                    touch-handoff := TouchArea {
+                        clicked => { root.mode-chosen("handoff"); }
+                    }
+                }
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: end;
+                ActionButton {
+                    text: "取消";
+                    clicked => { root.close(); }
+                }
+            }
+        }
+    }
+}

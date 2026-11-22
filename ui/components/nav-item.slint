@@ -1,0 +1,49 @@
+import { Theme } from "../theme.slint";
+
+export component NavItem inherits Rectangle {
+    in property <string> label;
+    in property <image> icon;
+    in property <bool> selected: false;
+    in property <bool> show-dot: false;
+    callback clicked;
+
+    height: 34px;
+    border-radius: 8px;
+    background: selected ? Theme.accent-soft : (touch.has-hover ? Theme.surface2 : transparent);
+
+    HorizontalLayout {
+        padding-left: 9px;
+        padding-right: 10px;
+        spacing: 9px;
+        alignment: start;
+        VerticalLayout {
+            alignment: center;
+            Image {
+                source: root.icon;
+                width: 18px;
+                height: 18px;
+                image-fit: contain;
+                colorize: root.selected ? Theme.accent-text : Theme.text2;
+            }
+        }
+        Text {
+            text: root.label;
+            font-size: 12.5px;
+            color: selected ? Theme.accent-text : Theme.text2;
+            font-weight: selected ? 600 : 400;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+        if root.show-dot : Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 6px;
+            height: 6px;
+            border-radius: 3px;
+            background: Theme.danger;
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}

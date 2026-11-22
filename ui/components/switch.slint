@@ -1,0 +1,28 @@
+import { Theme } from "../theme.slint";
+
+/// 二态开关：点击切换，滑块位置随 checked 动画移动。
+export component Switch inherits Rectangle {
+    in property <bool> checked: false;
+    callback toggled(bool);
+
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: root.checked ? Theme.accent : Theme.input-bg;
+    border-width: 1px;
+    border-color: root.checked ? Theme.accent : Theme.border-strong;
+
+    handle := Rectangle {
+        x: root.checked ? parent.width - self.width - 2px : 2px;
+        y: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: root.checked ? Theme.on-accent : Theme.text3;
+        animate x { duration: 120ms; easing: ease-out; }
+    }
+
+    TouchArea {
+        clicked => { root.toggled(!root.checked); }
+    }
+}

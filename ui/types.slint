@@ -1,0 +1,138 @@
+export struct SessionRow {
+    agent: string,
+    agent-label: string,
+    id: string,
+    title: string,
+    cwd: string,
+    updated: string,
+    count: int,
+    archived: bool,
+    deleted: bool,
+    workspace-deleted: bool,
+    selected: bool,
+    icon: image,
+    header: bool,
+    header-label: string,
+    header-path: string,
+    header-count: int,
+    header-expanded: bool,
+    header-key: string,
+}
+
+export struct WorkspaceSuggestion {
+    name: string,
+    path: string,
+}
+
+export struct AgentFilter {
+    id: string,
+    label: string,
+    count: int,
+    icon: image,
+    selected: bool,
+}
+
+export struct AgentChoice {
+    id: string,
+    label: string,
+}
+
+export struct SelectionSummary {
+    agent: string,
+    label: string,
+    count: int,
+    icon: image,
+}
+
+// Agent 管理页的列表行：已安装与未安装各用一个 ListView，kind 决定行样式。
+// 1 已安装列头 / 2 分隔线 / 3 产品组头 / 4 已安装行 /
+// 6 未安装列头 / 7 未安装行 / 8 空状态。
+export struct AgentListRow {
+    kind: int,
+    text: string,
+    product: string,
+    variant: string,
+    count: int,
+    expanded: bool,
+    label: string,
+    version: string,
+    latest: string,
+    status: string,
+    updatable: bool,
+    latest-known: bool,
+    action-enabled: bool,
+    open-enabled: bool,
+    can-install: bool,
+    channel: string,
+    icon: image,
+}
+
+// 插件页的已导入插件行。
+// status-kind：0 未检查 / 1 检查中 / 2 可更新 / 3 下载中 / 4 已是最新 / 5 失败 / 6 已更新。
+export struct PluginRow {
+    id: string,
+    label: string,
+    version: string,
+    root: string,
+    detail: string,
+    enabled: bool,
+    status: string,
+    status-kind: int,
+    update-enabled: bool,
+    icon: image,
+}
+
+// 插件库「未安装」行：名称、版本、安装状态与安装按钮。
+export struct PluginStoreRow {
+    id: string,
+    label: string,
+    version: string,
+    detail: string,
+    status: string,
+    installing: bool,
+    installable: bool,
+    progress: float,
+}
+
+// 插件浮层「下载」页签的行：下载中显示速度与进度，完成后显示更新完毕。
+export struct PluginDownloadRow {
+    label: string,
+    detail: string,
+    progress: float,
+    done: bool,
+}
+
+// 设置「打开」行：options 为已安装且可打开形态的用户可见名称。
+export struct OpenDefaultRow {
+    product: string,
+    label: string,
+    summary: string,
+    options: [string],
+    current: string,
+    icon: image,
+}
+
+// 设置「外观」的主题行：色块取各主题调色板的 bg / surface / accent。
+export struct ThemeCard {
+    id: string,
+    label: string,
+    description: string,
+    wallpaper: bool,
+    swatch-bg: color,
+    swatch-surface: color,
+    swatch-accent: color,
+    swatch-text: color,
+}
+
+export struct UpdateLogRow {
+    text: string,
+    ok: bool,
+    updatable: bool,
+}
+
+export struct GarbageSummary {
+    agent: string,
+    label: string,
+    count: int,
+    icon: image,
+}

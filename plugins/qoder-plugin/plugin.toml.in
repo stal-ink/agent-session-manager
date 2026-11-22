@@ -1,0 +1,61 @@
+schema = 2
+id = "qoder"
+label = "Qoder"
+version = "@VERSION@"
+protocol = 1
+ir_version = 1
+min_host = "0.17.0"
+process = "Qoder CN.exe"
+launch = "qoder-cn"
+icon = "icon.png"
+can_write = true
+sha256 = "@SHA256@"
+group_color = "#5b7bff"
+
+[execution]
+mode = "ephemeral"
+command = "bin/agent-plugin-qoder.exe"
+args = []
+timeout_ms = 30000
+
+[capabilities]
+list = true
+load = true
+write = true
+delete = true
+destroy = true
+active = true
+backup_paths = true
+
+[safety]
+requires_exclusive = true
+restore_on_error = true
+delete_is_physical = false
+
+[integration]
+tracks_process = true
+close_process = ""
+close_mode = "process"
+open_session_ids = false
+archive_from_open_ids = false
+
+[[variants]]
+id = "qoder-desktop"
+label = "Qoder"
+kind = "desktop"
+default_open = true
+[variants.open]
+strategy = "registry"
+command = "qoder-cn"
+args = []
+session_args = []
+[variants.update]
+channel = "qoder-desktop"
+version_url = "https://static.qoder.com.cn/qoder-app/releases/latest.yml"
+parser = "key"
+key = "version"
+download_url = "https://qoder.com.cn/"
+[[variants.detectors]]
+type = "desktop_app"
+registry_keys = ["Qoder"]
+exe = "Qoder CN.exe"

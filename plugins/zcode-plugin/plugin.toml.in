@@ -1,0 +1,61 @@
+schema = 2
+id = "zcode"
+label = "ZCode"
+version = "@VERSION@"
+protocol = 1
+ir_version = 1
+min_host = "0.17.0"
+process = "ZCode.exe"
+launch = "zcode"
+icon = "icon.png"
+can_write = true
+sha256 = "@SHA256@"
+group_color = "#7fd18c"
+
+[execution]
+mode = "ephemeral"
+command = "bin/agent-plugin-zcode.exe"
+args = []
+timeout_ms = 30000
+
+[capabilities]
+list = true
+load = true
+write = true
+delete = true
+destroy = true
+active = true
+backup_paths = true
+
+[safety]
+requires_exclusive = true
+restore_on_error = true
+delete_is_physical = false
+
+[integration]
+tracks_process = true
+close_process = ""
+close_mode = "process"
+open_session_ids = false
+archive_from_open_ids = false
+
+[[variants]]
+id = "zcode-desktop"
+label = "ZCode"
+kind = "desktop"
+default_open = true
+[variants.open]
+strategy = "registry"
+command = "zcode"
+args = []
+session_args = []
+[variants.update]
+channel = "zcode-desktop"
+version_url = "https://zcode.z.ai/cn/docs/install"
+parser = "html_regex"
+patterns = ['([0-9]+(?:\.[0-9]+)+)\s*·?\s*最新版本']
+download_url = "https://zcode.z.ai/cn/docs/install"
+[[variants.detectors]]
+type = "desktop_app"
+registry_keys = ["ZCode"]
+exe = "ZCode.exe"

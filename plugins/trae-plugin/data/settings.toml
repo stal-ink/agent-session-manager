@@ -1,0 +1,15 @@
+# Trae 插件自有配置。宿主不读取本文件。
+schema = 1
+
+[key_acquisition]
+# 是否把已验证的密钥缓存到 data/key-cache.json。
+cache = true
+# 是否允许从运行中的 Trae CN 进程内存获取密钥。
+# 关闭时只使用内置候选与缓存；升级 Trae 后若密钥变化，需要手动更新插件。
+memory_scan = false
+# 密钥获取尝试次数（缓存未命中后，每轮先试内置候选，再按需扫描内存）。
+retry_attempts = 3
+# 单次进程内存扫描的时间上限。
+attempt_timeout_ms = 8000
+# 密钥获取总时间上限，必须小于插件 manifest 的 timeout_ms。
+total_timeout_ms = 45000

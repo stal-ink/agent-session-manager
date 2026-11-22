@@ -1,0 +1,62 @@
+import { Theme } from "../theme.slint";
+import { CheckBox } from "check-box.slint";
+
+export component StatusFilterItem inherits Rectangle {
+    in property <string> label;
+    in property <int> kind: 1;
+    in property <bool> checked: true;
+    callback toggled(bool);
+
+    height: 44px;
+    background: transparent;
+    HorizontalLayout {
+        spacing: 7px;
+        alignment: start;
+        VerticalLayout {
+            alignment: center;
+            CheckBox {
+                checked: root.checked;
+                toggled(value) => { root.toggled(value); }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                height: 19px;
+                border-radius: 9px;
+                background: root.kind == 0
+                    ? Theme.surface2
+                    : (root.kind == 4
+                        ? Theme.tag-deleted-bg
+                        : (root.kind == 3
+                            ? Theme.tag-workspace-bg
+                            : (root.kind == 2 ? Theme.tag-archived-bg : Theme.tag-active-bg)));
+                border-width: 1px;
+                border-color: root.kind == 0
+                    ? Theme.border
+                    : (root.kind == 4
+                        ? Theme.tag-deleted-border
+                        : (root.kind == 3
+                            ? Theme.tag-workspace-border
+                            : (root.kind == 2 ? Theme.tag-archived-border : Theme.tag-active-border)));
+                HorizontalLayout {
+                    padding-left: 7px;
+                    padding-right: 7px;
+                    alignment: center;
+                    Text {
+                        text: root.label;
+                        font-size: 10px;
+                        color: root.kind == 0
+                            ? Theme.text2
+                            : (root.kind == 4
+                                ? Theme.tag-deleted-text
+                                : (root.kind == 3
+                                    ? Theme.tag-workspace-text
+                                    : (root.kind == 2 ? Theme.tag-archived-text : Theme.tag-active-text)));
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}

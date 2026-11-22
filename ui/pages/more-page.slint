@@ -1,0 +1,176 @@
+import { Theme } from "../theme.slint";
+import { GarbageSummary } from "../types.slint";
+import { ActionButton } from "../components/action-button.slint";
+import { IconTile } from "../components/icon-tile.slint";
+
+export component MorePage inherits Rectangle {
+    in property <[GarbageSummary]> summary;
+    in property <int> total-count: 0;
+    in property <bool> scanned: false;
+    in property <bool> scanning: false;
+    callback scan;
+    callback clear;
+
+    background: Theme.bg;
+
+    VerticalLayout {
+        spacing: 0;
+        Rectangle {
+            height: 58px;
+            HorizontalLayout {
+                padding-left: 18px;
+                padding-right: 16px;
+                spacing: 10px;
+                alignment: start;
+                VerticalLayout {
+                    alignment: center;
+                    Image {
+                        source: @image-url("../../assets/icons/icon-more.svg");
+                        width: 18px;
+                        height: 18px;
+                        image-fit: contain;
+                        colorize: Theme.text2;
+                    }
+                }
+                Text {
+                    text: "更多";
+                    font-size: 15px;
+                    font-weight: 600;
+                    color: Theme.text;
+                    vertical-alignment: center;
+                }
+            }
+        }
+        Rectangle {
+            height: 1px;
+            background: Theme.border;
+        }
+        Rectangle {
+            vertical-stretch: 1;
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                alignment: start;
+                padding-left: 18px;
+                padding-right: 18px;
+                padding-top: 18px;
+                padding-bottom: 18px;
+                spacing: 10px;
+                Text {
+                    text: "实用工具";
+                    font-size: 12px;
+                    color: Theme.text3;
+                    vertical-stretch: 0;
+                }
+                Rectangle {
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    background: Theme.card;
+                    VerticalLayout {
+                        width: parent.width;
+                        padding: 16px;
+                        spacing: 12px;
+                        HorizontalLayout {
+                            width: parent.width;
+                            spacing: 12px;
+                            alignment: start;
+                            VerticalLayout {
+                                alignment: center;
+                                IconTile {
+                                    source: @image-url("../../assets/icons/icon-clean.svg");
+                                    width: 32px;
+                                    height: 32px;
+                                    tint: Theme.text2;
+                                }
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                spacing: 2px;
+                                Text {
+                                    text: "垃圾会话清除";
+                                    font-size: 13.5px;
+                                    font-weight: 600;
+                                    color: Theme.text;
+                                }
+                                Text {
+                                    text: "扫描所有 agent 的会话，0 条消息的会话视为垃圾会话；清除前再次确认。";
+                                    font-size: 11.5px;
+                                    color: Theme.text3;
+                                }
+                            }
+                            Rectangle { horizontal-stretch: 1; }
+                            VerticalLayout {
+                                alignment: center;
+                                ActionButton {
+                                    text: root.scanning ? "扫描中…" : (root.scanned ? "重新扫描" : "扫描");
+                                    enabled: !root.scanning;
+                                    clicked => { root.scan(); }
+                                }
+                            }
+                        }
+                        if root.scanned : Rectangle {
+                            height: 1px;
+                            background: Theme.border;
+                        }
+                        if root.scanned : Text {
+                            text: "扫描结果";
+                            font-size: 11px;
+                            color: Theme.text3;
+                        }
+                        if root.scanned && root.summary.length == 0 : Text {
+                            text: "没有 0 消息会话";
+                            font-size: 12px;
+                            color: Theme.text2;
+                        }
+                        for item in root.summary : HorizontalLayout {
+                            spacing: 8px;
+                            VerticalLayout {
+                                alignment: center;
+                                IconTile {
+                                    source: item.icon;
+                                    width: 20px;
+                                    height: 20px;
+                                    border-radius: 6px;
+                                }
+                            }
+                            Text {
+                                text: item.label;
+                                font-size: 12px;
+                                color: Theme.text;
+                                vertical-alignment: center;
+                            }
+                            Text {
+                                text: item.count + " 条";
+                                font-size: 11px;
+                                color: Theme.text2;
+                                vertical-alignment: center;
+                            }
+                            Rectangle { horizontal-stretch: 1; }
+                        }
+                        if root.scanned : Rectangle {
+                            height: 1px;
+                            background: Theme.border;
+                        }
+                        if root.scanned : HorizontalLayout {
+                            alignment: start;
+                            Text {
+                                text: "共 " + root.total-count + " 条";
+                                font-size: 12px;
+                                color: Theme.text2;
+                                vertical-alignment: center;
+                            }
+                            Rectangle { horizontal-stretch: 1; }
+                            ActionButton {
+                                text: "清除";
+                                danger: true;
+                                enabled: root.total-count > 0;
+                                clicked => { root.clear(); }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

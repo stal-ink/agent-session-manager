@@ -1,0 +1,43 @@
+import { Theme } from "../theme.slint";
+
+export component ActionButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> primary: false;
+    in property <bool> danger: false;
+    in property <bool> enabled: true;
+    callback clicked;
+    height: 28px;
+    border-radius: 7px;
+    background: !root.enabled
+        ? Theme.surface2
+        : (danger
+            ? Theme.danger
+            : (primary
+                ? (touch.has-hover ? Theme.accent-hover : Theme.accent)
+                : (touch.has-hover ? Theme.surface2 : transparent)));
+    border-width: primary || danger ? 0 : 1px;
+    border-color: Theme.border-strong;
+    drop-shadow-blur: root.enabled && touch.has-hover ? (primary || danger ? 18px : 12px) : 0px;
+    drop-shadow-color: primary ? Theme.btn-glow : Theme.btn-shadow;
+    drop-shadow-offset-y: touch.has-hover ? 4px : 0px;
+    HorizontalLayout {
+        padding-left: 13px;
+        padding-right: 13px;
+        alignment: center;
+        Text {
+            text: root.text;
+            color: !root.enabled
+                ? Theme.text3
+                : (primary || danger ? Theme.on-accent : Theme.btn-text);
+            font-size: 12px;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        clicked => {
+            if root.enabled {
+                root.clicked();
+            }
+        }
+    }
+}

@@ -1,0 +1,18 @@
+# 本机构建配置模板：复制为同目录的 config.local.toml（已被 .gitignore 忽略），按本机路径填写。
+#
+# 发布安全加固（见 docs/security.md）：panic Location 与调试路径会原样进入二进制，
+# 把构建机绝对前缀统一映射为通用名，避免泄漏盘符布局、工具链位置与镜像指纹。
+# 注意（实测）：同一路径深浅两条映射并存时，靠后的浅映射胜出——registry 映射必须
+# 直接写全到镜像哈希目录，不能与只到 .cargo 的浅映射并存。正反斜杠各写一份，
+# 未命中的映射无副作用。RUSTFLAGS 环境变量会整体覆盖 rustflags，不要混用。
+[build]
+rustflags = [
+    '--remap-path-prefix=C:\path\to\agent_session_manager=/asm',
+    '--remap-path-prefix=C:/path/to/agent_session_manager=/asm',
+    # cargo 镜像缓存：registry/src 下每个镜像哈希目录各写一条，映射到 /deps。
+    '--remap-path-prefix=C:\Users\you\.cargo\registry\src\index.crates.io-<hash>=/deps',
+    '--remap-path-prefix=C:/Users/you/.cargo/registry/src/index.crates.io-<hash>=/deps',
+    # rustup 工具链目录，映射到 /rustup。
+    '--remap-path-prefix=C:\Users\you\.rustup=/rustup',
+    '--remap-path-prefix=C:/Users/you/.rustup=/rustup',
+]

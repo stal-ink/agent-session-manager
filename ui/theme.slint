@@ -1,0 +1,78 @@
+// 主题令牌：所有界面颜色都从这里取，禁止在界面里写死颜色值。
+// 调色板定义在 assets/themes/*.json，由 Rust 侧 ui/theme.rs 在启动与切换时写入；
+// 这里的默认值仅保证组件在未应用主题前使用深色调色板。
+
+export global Theme {
+    in-out property <bool> dark: true;
+
+    // 基础层
+    in-out property <color> bg: #141519;
+    // 壁纸主题下垫在图片后面的纯色底；未选图片时可见，其他主题等于 bg。
+    in-out property <color> wallpaper-base: #141519;
+    in-out property <color> surface: #1a1c21;
+    in-out property <color> surface2: #1f2229;
+    in-out property <color> card: #1c1f25;
+    in-out property <color> card-hover: #21252d;
+
+    // 边框
+    in-out property <color> border: #292c34;
+    in-out property <color> border-strong: #363a45;
+    in-out property <color> border-accent: #3d4767;
+
+    // 文字
+    in-out property <color> text: #e9ebf1;
+    in-out property <color> text2: #9aa1ad;
+    in-out property <color> text3: #6c7280;
+    in-out property <color> text-faint: #4d525c;
+
+    // 强调色
+    in-out property <color> accent: #5b7bff;
+    in-out property <color> accent-hover: #6f8cff;
+    in-out property <color> accent-soft: #232b47;
+    in-out property <color> accent-text: #cfd9ff;
+    in-out property <color> accent-text2: #8fa5ff;
+    in-out property <color> on-accent: white;
+
+    // 状态色
+    in-out property <color> warn: #e0b072;
+    in-out property <color> danger: #e2837c;
+
+    // 归档 / 活跃标记
+    in-out property <color> tag-archived-bg: #2e2618;
+    in-out property <color> tag-archived-border: #5b4a2c;
+    in-out property <color> tag-archived-text: #e0b072;
+    in-out property <color> tag-active-bg: #1a2b20;
+    in-out property <color> tag-active-border: #2f523a;
+    in-out property <color> tag-active-text: #7fd18c;
+
+    // 已删除 / 工作区删除标记
+    in-out property <color> tag-deleted-bg: #2e1a19;
+    in-out property <color> tag-deleted-border: #5a302d;
+    in-out property <color> tag-deleted-text: #e2837c;
+    in-out property <color> tag-workspace-bg: #24262c;
+    in-out property <color> tag-workspace-border: #3a3e47;
+    in-out property <color> tag-workspace-text: #a3aab5;
+
+    // 图标底板
+    in-out property <color> icon-tile-bg: #3a3e47;
+    in-out property <color> icon-tile-border: #4a4f5a;
+
+    // 输入 / 选项
+    in-out property <color> input-bg: #101115;
+    in-out property <color> field-bg: #14151a;
+    in-out property <color> option-bg: #191b20;
+
+    // 按钮
+    in-out property <color> btn-text: #d7dbe3;
+    in-out property <color> btn-glow: #6b8affa6;
+    in-out property <color> btn-shadow: #00000080;
+
+    // 遮罩 / 对话框
+    in-out property <color> overlay: #000000a6;
+    in-out property <color> dialog-bg: #1e2127;
+    in-out property <color> dialog-border: #30343d;
+    in-out property <color> dialog-shadow: #00000066;
+
+    // 壁纸主题压暗层；非壁纸主题为全透明
+    in-out property <color> wallpaper-scrim: #00000000;
+}

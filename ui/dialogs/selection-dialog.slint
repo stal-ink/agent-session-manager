@@ -1,0 +1,153 @@
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../theme.slint";
+import { SelectionSummary } from "../types.slint";
+import { ActionButton } from "../components/action-button.slint";
+import { IconTile } from "../components/icon-tile.slint";
+
+export component SelectionDialog inherits Rectangle {
+    in property <length> overlay-width: 1080px;
+    in property <length> overlay-height: 720px;
+    in property <[SelectionSummary]> summary;
+    in property <int> total-count: 0;
+    callback cancel-agent(string);
+    callback cancel-all;
+    callback delete;
+    callback destroy;
+    callback export-selected;
+    callback close;
+
+    width: root.overlay-width;
+    height: root.overlay-height;
+    background: Theme.overlay;
+    Rectangle {
+        width: 460px;
+        height: 390px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: 14px;
+        background: Theme.dialog-bg;
+        border-width: 1px;
+        border-color: Theme.dialog-border;
+        drop-shadow-blur: 32px;
+        drop-shadow-color: Theme.dialog-shadow;
+        drop-shadow-offset-y: 10px;
+        TouchArea { }
+        VerticalLayout {
+            padding: 22px;
+            spacing: 10px;
+            HorizontalLayout {
+                spacing: 8px;
+                Text {
+                    text: "已选对话";
+                    font-size: 15px;
+                    font-weight: 700;
+                    color: Theme.text;
+                    vertical-alignment: center;
+                }
+                Text {
+                    text: root.total-count + " 条";
+                    font-size: 11px;
+                    color: Theme.text3;
+                    vertical-alignment: center;
+                }
+                Rectangle { horizontal-stretch: 1; }
+                ActionButton {
+                    text: "全部取消";
+                    enabled: root.total-count > 0;
+                    clicked => { root.cancel-all(); }
+                }
+            }
+            Rectangle {
+                height: 1px;
+                background: Theme.border;
+            }
+            summary-scroll := ScrollView {
+                height: 150px;
+                VerticalLayout {
+                    width: summary-scroll.content-width;
+                    spacing: 10px;
+                    if root.summary.length == 0 : Text {
+                        text: "尚未选择会话";
+                        font-size: 12px;
+                        color: Theme.text3;
+                    }
+                    for item in root.summary : Rectangle {
+                        height: 32px;
+                        background: transparent;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            VerticalLayout {
+                                width: 22px;
+                                alignment: center;
+                                IconTile {
+                                    source: item.icon;
+                                    width: 22px;
+                                    height: 22px;
+                                    border-radius: 6px;
+                                }
+                            }
+                            Text {
+                                text: item.label;
+                                font-size: 12px;
+                                color: Theme.text;
+                                vertical-alignment: center;
+                            }
+                            Text {
+                                text: item.count + " 条";
+                                font-size: 11px;
+                                color: Theme.text2;
+                                vertical-alignment: center;
+                            }
+                            Rectangle { horizontal-stretch: 1; }
+                            ActionButton {
+                                text: "取消";
+                                clicked => { root.cancel-agent(item.agent); }
+                            }
+                        }
+                    }
+                }
+            }
+            Rectangle {
+                height: 1px;
+                background: Theme.border;
+            }
+            Text {
+                text: "批量操作";
+                font-size: 11px;
+                color: Theme.text3;
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: end;
+                ActionButton {
+                    text: "导出";
+                    enabled: root.total-count > 0;
+                    clicked => { root.export-selected(); }
+                }
+                ActionButton {
+                    text: "删除";
+                    danger: true;
+                    enabled: root.total-count > 0;
+                    clicked => { root.delete(); }
+                }
+                ActionButton {
+                    text: "销毁";
+                    danger: true;
+                    enabled: root.total-count > 0;
+                    clicked => { root.destroy(); }
+                }
+            }
+            Rectangle {
+                height: 1px;
+                background: Theme.border;
+            }
+            HorizontalLayout {
+                alignment: end;
+                ActionButton {
+                    text: "关闭";
+                    clicked => { root.close(); }
+                }
+            }
+        }
+    }
+}
